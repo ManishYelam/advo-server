@@ -1,0 +1,31 @@
+# Auto-normalize line endings to LF (Unix-style line endings)
+* text=auto
+
+# Explicitly set line endings for specific file types
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+
+# Handle binary files
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.mp4   binary
+
+# Ensure shell scripts have Unix-style line endings
+*.sh    text eol=lf
+
+# No diff for certain file types
+*.lock  -diff
+*.min.js -diff
+*.min.css -diff
+
+# Mark lock files as binary to avoid merge conflicts
+package-lock.json binary
+yarn.lock binary
