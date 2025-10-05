@@ -3,7 +3,8 @@ const {
   User,
   ApplicationProperties,
   ListOfValues,
-  Organization
+  Organization,
+  Cases
 } = require('./Association');
 
 module.exports = {
@@ -16,6 +17,7 @@ module.exports = {
         ApplicationProperties.sync({ alter: false }),
         ListOfValues.sync({ alter: false }),
         Organization.sync({ alter: false }),
+        Cases.sync({ alter: true }),
       ]);
     } catch (error) {
       console.error('Error syncing database:', error);

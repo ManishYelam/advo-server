@@ -3,106 +3,114 @@ const { sequelize } = require('../../Config/Database/db.config');
 const User = require('./User');
 
 const Cases = sequelize.MAIN_DB_NAME.define(
-  'Cases', 
+  'Cases',
   {
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
-    caseNumber: {           
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    age: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    case_number: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
     },
-    title: {                
+    case_name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    description: {          
+    description: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    caseType: {             
+    case_type: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    status: {               
+    status: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: "Running",
+      defaultValue: "Pending",
     },
-    courtName: {            
+    court_name: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    nextHearingDate: {      
+    next_hearing_date: {
       type: DataTypes.DATE,
       allowNull: true,
     },
-    filingDate: {           
+    filing_date: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
-    clientName: {           
+    client_name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    clientContact: {        
+    client_contact: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    clientAddress: {        
+    client_address: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    priority: {             
+    priority: {
       type: DataTypes.STRING,
       allowNull: true,
       defaultValue: "Normal",
     },
-    fees: {                 
+    fees: {
       type: DataTypes.FLOAT,
       allowNull: true,
     },
-    paymentStatus: {        
+    payment_status: {
       type: DataTypes.STRING,
       allowNull: true,
       defaultValue: "Pending",
     },
-    documents: {            
+    documents: {
       type: DataTypes.JSON,
       allowNull: true,
     },
-    notes: {                
+    notes: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    opposingParty: {        
+    opposing_party: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    caseOutcome: {          
+    case_outcome: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    reminders: {            
+    reminders: {
       type: DataTypes.JSON,
       allowNull: true,
     },
-    legalCategory: {        
+    legal_category: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    courtAddress: {         
+    court_address: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    documentsSharedWithClient: { 
+    documents_shared_with_client: {
       type: DataTypes.JSON,
       allowNull: true,
     },
-    clientId: {              
+    client_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
