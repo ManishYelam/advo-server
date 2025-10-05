@@ -7,7 +7,7 @@ module.exports = {
       const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
       const userAgent = req.get('User-Agent');
       const { token, user } = await AuthService.login(email, password, clientIp, userAgent);
-      // res.status(200).json({ message: `🎉 Welcome back, ${user.first_name}! You have successfully logged in.`, token, user });
+      // res.status(200).json({ message: `🎉 Welcome back, ${user.first_name}! You have successfully logged in.`, token, user });      
       res.status(200).json({ token, user });
     } catch (error) {
       res.status(400).json({ error: error.message });
