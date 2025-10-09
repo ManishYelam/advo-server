@@ -3,6 +3,7 @@ const Organization = require('./Organization');
 const ApplicationProperties = require('./Application.Prop');
 const ListOfValues = require('./List.Of.values');
 const Cases = require('./Cases');
+const Contact = require('./Contacts');
 
 // One client can have many cases
 User.hasMany(Cases, { foreignKey: "clientId", as: "cases" });
@@ -17,5 +18,6 @@ module.exports = {
   Organization,
   ApplicationProperties,
   ListOfValues,
-  Cases
+  Cases,
+  Contact
 };
