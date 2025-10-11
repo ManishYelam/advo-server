@@ -7,6 +7,7 @@ const genericRouter = require('./GenericRoutes');
 const fileRouter = require('./fileRoutes');
 const { caseRouter } = require('./caseRoutes');
 const contactRouter = require('./contactRoutes');
+const paymentRouter = require('./paymentRoutes');
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router
   .use('/generics', authMiddleware, genericRouter)
   .use('/files', authMiddleware, fileRouter)
   .use('/contact', contactRouter)
+  .use('/payment', paymentRouter)
   .use('/case', authMiddleware, caseRouter);
 
 module.exports = router;
