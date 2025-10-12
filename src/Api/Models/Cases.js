@@ -38,7 +38,7 @@ const Cases = sequelize.MAIN_DB_NAME.define(
     status: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: "Pending",
+      defaultValue: 'Pending',
     },
     court_name: {
       type: DataTypes.STRING,
@@ -67,7 +67,7 @@ const Cases = sequelize.MAIN_DB_NAME.define(
     priority: {
       type: DataTypes.STRING,
       allowNull: true,
-      defaultValue: "Normal",
+      defaultValue: 'Normal',
     },
     fees: {
       type: DataTypes.FLOAT,
@@ -76,7 +76,7 @@ const Cases = sequelize.MAIN_DB_NAME.define(
     payment_status: {
       type: DataTypes.STRING,
       allowNull: true,
-      defaultValue: "Pending",
+      defaultValue: 'Pending',
     },
     documents: {
       type: DataTypes.JSON,
@@ -115,7 +115,7 @@ const Cases = sequelize.MAIN_DB_NAME.define(
       allowNull: false,
       references: {
         model: User,
-        key: "id",
+        key: 'id',
       },
     },
   },

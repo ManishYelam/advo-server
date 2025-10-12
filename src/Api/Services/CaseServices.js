@@ -3,7 +3,7 @@ const Cases = require('../Models/Cases');
 
 const CaseService = {
   // Create a new case
-  createCase: async (data) => {
+  createCase: async data => {
     try {
       const newCase = await Cases.create(data);
       return newCase;
@@ -34,9 +34,8 @@ const CaseService = {
       if (filters.client_id) whereConditions.client_id = filters.client_id; // Client ID filter
 
       // **Apply Dynamic Search Using `.map()`**
-      let searchConditions = search && searchFields.length > 0 
-        ? searchFields.map(field => ({ [field]: { [Op.like]: `%${search}%` } }))
-        : [];
+      let searchConditions =
+        search && searchFields.length > 0 ? searchFields.map(field => ({ [field]: { [Op.like]: `%${search}%` } })) : [];
 
       // **Combine Filters and Search**
       let finalWhereCondition = { ...whereConditions };
@@ -47,8 +46,8 @@ const CaseService = {
       // **Fetch Cases with Filters, Pagination, and Sorting**
       const { rows, count } = await Cases.findAndCountAll({
         where: finalWhereCondition, // Conditions based on filters and search
-        limit,                      // Pagination limit
-        offset,                     // Pagination offset
+        limit, // Pagination limit
+        offset, // Pagination offset
         order: [['createdAt', 'DESC']], // Sorting by created_at column (descending)
       });
 
@@ -66,7 +65,7 @@ const CaseService = {
   },
 
   // Get a single case by ID
-  getCaseById: async (id) => {
+  getCaseById: async id => {
     try {
       const caseData = await Cases.findOne({
         where: { id },
@@ -83,7 +82,7 @@ const CaseService = {
     try {
       const updatedCase = await Cases.update(data, {
         where: { id },
-        returning: true,  // Return updated data
+        returning: true, // Return updated data
       });
       return updatedCase[1][0]; // Return the updated case
     } catch (error) {
@@ -92,7 +91,7 @@ const CaseService = {
   },
 
   // Delete a case
-  deleteCase: async (id) => {
+  deleteCase: async id => {
     try {
       const deleted = await Cases.destroy({
         where: { id },

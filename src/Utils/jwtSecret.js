@@ -96,7 +96,6 @@ const blacklistToken = async (token, logData) => {
       throw new Error('User not found or already logged out');
     }
 
-
     return { success: true, message: 'Logout successful. Your session has been securely ended.' };
   } catch (error) {
     console.error('Blacklist Token Error:', error.message);

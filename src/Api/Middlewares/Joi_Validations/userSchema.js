@@ -47,36 +47,26 @@ const generateUserSchema = async (isUpdate = false) => {
   return Joi.object({
     ...(isUpdate
       ? {
-          status: Joi.string()
-            .valid("active", "inactive")
-            .optional(),
+          status: Joi.string().valid('active', 'inactive').optional(),
         }
       : {
-          email: Joi.string()
-            .max(100)
-            .required()
-            .external(checkEmailDuplicate),
+          email: Joi.string().max(100).required().external(checkEmailDuplicate),
         }),
-    full_name: isUpdate
-      ? Joi.string().max(50).optional()
-      : Joi.string().max(50).required(),
+    full_name: isUpdate ? Joi.string().max(50).optional() : Joi.string().max(50).required(),
     password: Joi.string().max(50).required(),
-    date_of_birth: Joi.date().less("now").iso().optional(),
+    date_of_birth: Joi.date().less('now').iso().optional(),
     phone_number: Joi.string()
       .pattern(/^[0-9]{10,15}$/)
       .optional()
       .messages({
-        "string.pattern.base":
-          "Phone number must be between 10-15 digits and numbers only",
+        'string.pattern.base': 'Phone number must be between 10-15 digits and numbers only',
       }),
     address: Joi.string().max(500).optional(),
     occupation: Joi.string().max(500).optional(),
     role: isUpdate
-      ? Joi.string().valid("client", "admin", "advocate").optional()
-      : Joi.string().valid("client", "admin", "advocate").required(),
-    user_metadata: Joi.object()
-      .pattern(Joi.string(), Joi.any())
-      .optional(),
+      ? Joi.string().valid('client', 'admin', 'advocate').optional()
+      : Joi.string().valid('client', 'admin', 'advocate').required(),
+    user_metadata: Joi.object().pattern(Joi.string(), Joi.any()).optional(),
   });
 };
 

@@ -3,7 +3,7 @@ const Contact = require('../Models/Contacts');
 
 const ContactService = {
   // Create a new contact message
-  createContact: async (data) => {
+  createContact: async data => {
     try {
       const newContact = await Contact.create(data);
       return newContact;
@@ -28,9 +28,7 @@ const ContactService = {
 
       // Apply dynamic search
       let searchConditions =
-        search && searchFields.length > 0
-          ? searchFields.map((field) => ({ [field]: { [Op.like]: `%${search}%` } }))
-          : [];
+        search && searchFields.length > 0 ? searchFields.map(field => ({ [field]: { [Op.like]: `%${search}%` } })) : [];
 
       // Combine filters + search
       let finalWhereCondition = { ...whereConditions };
@@ -58,7 +56,7 @@ const ContactService = {
   },
 
   // Get a single contact message by ID
-  getContactById: async (id) => {
+  getContactById: async id => {
     try {
       const contact = await Contact.findOne({ where: { id } });
       if (!contact) throw new Error('Contact not found');
@@ -84,7 +82,7 @@ const ContactService = {
   },
 
   // Delete contact message
-  deleteContact: async (id) => {
+  deleteContact: async id => {
     try {
       const deleted = await Contact.destroy({ where: { id } });
       if (!deleted) throw new Error('Contact not found');

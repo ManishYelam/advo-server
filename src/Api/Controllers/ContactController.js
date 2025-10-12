@@ -1,7 +1,6 @@
 // controllers/ContactController.js
 
-const ContactService = require("../Services/contactService");
-
+const ContactService = require('../Services/contactService');
 
 const ContactController = {
   // User: Submit a contact message
@@ -25,13 +24,7 @@ const ContactController = {
   // Admin: Get all contact messages with filters/search/pagination
   getAllContacts: async (req, res) => {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        search = '',
-        searchFields = '',
-        ...filters
-      } = req.query;
+      const { page = 1, limit = 10, search = '', searchFields = '', ...filters } = req.query;
 
       const searchFieldsArray = searchFields ? searchFields.split(',') : [];
 

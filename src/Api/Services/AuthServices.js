@@ -11,7 +11,7 @@ const AuthService = {
     try {
       // Fetch user with associated role
       const user = await User.findOne({
-        where: { email }
+        where: { email },
       });
 
       if (!user) throw new Error('⚠️ Oops! The email or password you entered is incorrect. Please try again.');
@@ -40,7 +40,7 @@ const AuthService = {
       };
 
       console.log(user_info);
-      
+
       // Generate JWT token
       const token = generateToken(user_info); // Fixed function call
 
