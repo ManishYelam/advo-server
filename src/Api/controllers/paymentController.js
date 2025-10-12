@@ -8,7 +8,7 @@ module.exports = {
       res.status(200).json({ success: true, order });
     } catch (err) {
       console.error('Error creating order:', err);
-      res.status(500).json({ success: false, message: 'Unable to create order', error: err.message});
+      res.status(500).json({ success: false, message: 'Unable to create order' , error: err.message});
     }
   },
 
