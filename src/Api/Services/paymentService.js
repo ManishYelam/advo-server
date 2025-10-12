@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const razorpayInstance = require('../../Config/Setting/razorpay.config');
+const razorpay = require('../../Config/Setting/razorpay.config');
 
 const Payment = {
   createOrder: async (amount, currency = 'INR', receiptId = 'receipt#1') => {
@@ -8,7 +8,7 @@ const Payment = {
       currency,
       receipt: receiptId,
     };
-    const order = await razorpayInstance.orders.create(options);
+    const order = await razorpay.orders.create(options);
     return order;
   },
 
