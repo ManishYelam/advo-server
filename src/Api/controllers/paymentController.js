@@ -1,4 +1,3 @@
-const { error } = require('pdf-lib');
 const Payment = require('../Services/paymentService');
 
 module.exports = {
