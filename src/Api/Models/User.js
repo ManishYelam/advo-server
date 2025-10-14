@@ -27,6 +27,10 @@ const userAttribute = {
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
+  age: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   phone_number: {
     type: DataTypes.STRING(15),
     allowNull: true,

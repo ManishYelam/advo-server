@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../Config/Database/db.config');
+const User = require('./User');
 
 const Payment = sequelize.MAIN_DB_NAME.define(
   'Payment',
@@ -8,6 +9,14 @@ const Payment = sequelize.MAIN_DB_NAME.define(
       type: DataTypes.BIGINT,
       autoIncrement: true,
       primaryKey: true,
+    },
+    client_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: 'id',
+      },
     },
     order_id: {
       type: DataTypes.STRING(100),
