@@ -14,7 +14,8 @@ userRouter
   .get('/:id', authMiddleware, userController.getUserById)
   .put('/:id', authMiddleware, validateAsync(updateUserSchema), userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
-  .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges);
+  .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
+  .post('/save-application', userController.saveApplication);
 
 // Export both routers properly
 module.exports = {

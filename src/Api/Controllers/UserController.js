@@ -86,4 +86,18 @@ module.exports = {
       return res.status(500).json({ error: 'An error occurred while deleting users' });
     }
   },
+
+  saveApplication: async (req, res) => {
+    try {
+      const data = req.body;
+      user_data = { data }
+      case_data = { data }
+      payment_data = { data }
+      const res = await userService.saveApplication(user_data, case_data, payment_data);
+      return res.status(200).json({ data: res });
+    } catch (error) {
+      console.error('Error saving application:', error);
+      return res.status(500).json({ error: 'An error occurred while saving application' });
+    }
+  },
 };

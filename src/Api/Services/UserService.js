@@ -2,7 +2,7 @@ const { hashPassword } = require('../Helpers/hashPassword');
 const { Op } = require('sequelize');
 const { generateOTPTimestamped, verifyOTPTimestamped, generateStrongPassword } = require('../../Utils/OTP');
 const { sendLaunchCodeEmail, sendVerificationEmail } = require('./email.Service');
-const { User, Role, Permission } = require('../Models/Association');
+const { User, Role, Permission, Cases, Payment } = require('../Models/Association');
 const { sequelize } = require('../../Config/Database/db.config');
 
 module.exports = {
@@ -171,4 +171,17 @@ module.exports = {
     });
     return deletedCount;
   },
+
+  saveApplication: async (user_data, case_data, payment_data) => {
+    try {
+      const user = await User.create(user_data);
+      const caseData = await Cases.create({ user_id: user.id, case_data });
+      const paymentData = await Payment.create({ user_id: user.id, case_id: caseData.id, payment_data });
+      return { user, case: caseData, payment: paymentData };
+    } catch (error) {
+      console.error("Error saving application:", error);
+      throw new Error("Error saving application");
+    }
+  }
+
 };
