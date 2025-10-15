@@ -1,4 +1,5 @@
 const { generateUniqueIDForHealth } = require('../../Utils/generateUniqueID');
+const { welcomeTemplate } = require('../EmailTemplets/Templates');
 const userService = require('../Services/UserService');
 
 module.exports = {
@@ -139,7 +140,13 @@ module.exports = {
       };
 
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
-      return res.status(200).json({ success: true, message: "✅ Application saved successfully!", data: saved });
+      console.log(saved);
+      // if (saved.success == true) {
+      //   const reg_link = `http://localhost:5173/register-client`;
+      //   await welcomeTemplate(saved.user.id, user_data.full_name, user_data.email, reg_link);
+      // }
+
+      return res.status(200).json({ message: "✅ Application saved successfully!", data: saved });
     } catch (error) {
       console.error("❌ Error saving application:", error);
       return res.status(500).json({ error: "An error occurred while saving application" });

@@ -708,7 +708,7 @@ module.exports = {
             color: #555;
             font-size: 16px;
         }
-        .cta-button {
+        .btn {
             background-color: #007bff;
             color: white;
             padding: 12px 25px;
@@ -718,7 +718,7 @@ module.exports = {
             display: inline-block;
             margin-top: 15px;
         }
-        .cta-button:hover {
+        .btn:hover {
             background-color: #0056b3;
         }
         .footer {
@@ -747,11 +747,12 @@ module.exports = {
 
         <!-- Main Content -->
         <div class="content">
-            <h2 style="color: #28a745;">🎉 Welcome, ${data.name}!</h2>
-            <p>We’re excited to have you join <strong>${data.appName}</strong>! Our goal is to provide you with an amazing experience and help you get started effortlessly.</p>
-            
-            <p>Click the button below to explore your dashboard:</p>
-            <a href="${data.appUrl}" class="cta-button">Get Started</a>
+            <h2 style="color: #28a745;">🎉 Welcome, ${data.full_name}!</h2>
+            <p>We’re excited to have you join <strong>${data.appName}</strong>! Your account is ready to use.</p>
+
+            <!-- Registration/Login Button -->
+            <p>Click the button below to complete your registration or login:</p>
+            <a href="${data.registrationUrl}" class="btn">Complete Registration / Login</a>
 
             <p>If you have any questions, feel free to reach out to our support team. We’re here to help!</p>
 
