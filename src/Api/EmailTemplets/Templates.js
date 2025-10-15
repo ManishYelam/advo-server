@@ -747,7 +747,7 @@ module.exports = {
 
         <!-- Main Content -->
         <div class="content">
-            <h2 style="color: #28a745;">🎉 Welcome, ${data.full_name}!</h2>
+            <h2 style="color: #28a745;">🎉 Welcome, ${data.userName}!</h2>
             <p>We’re excited to have you join <strong>${data.appName}</strong>! Your account is ready to use.</p>
 
             <!-- Registration/Login Button -->

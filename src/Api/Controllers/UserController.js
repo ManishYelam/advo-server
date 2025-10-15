@@ -1,5 +1,5 @@
 const { generateUniqueIDForHealth } = require('../../Utils/generateUniqueID');
-const { welcomeTemplate } = require('../EmailTemplets/Templates');
+const { sendApplicantRegEmail } = require('../Services/email.Service');
 const userService = require('../Services/UserService');
 
 module.exports = {
@@ -147,10 +147,10 @@ module.exports = {
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
 
       // Optionally send registration email
-      // if (saved.success) {
-      //   const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
-      //   await welcomeTemplate(saved.user.id, user_data.full_name, user_data.email, reg_link);
-      // }
+      if (saved.success == true) {
+        const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
+        sendApplicantRegEmail(saved.user.id, user_data.full_name, user_data.email, reg_link);
+      }
 
       return res.status(200).json({ message: "✅ Application saved successfully!", data: saved });
     } catch (error) {

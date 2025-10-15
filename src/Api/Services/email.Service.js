@@ -9,6 +9,18 @@ const {
 const { User } = require('../Models/Association');
 
 module.exports = {
+  sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link) => {
+    const user_Email = userEmail;
+    const subject = '🚀 Your Exclusive Service Register Here!';
+    const template_Name = 'welcomeTemplate';
+    const template_Data = {
+      userId: userId,
+      userName: fullName,
+      reg_link: reg_link,
+    };
+    sendMail(user_Email, subject, template_Name, template_Data);
+  },
+
   // ✅
   sendLaunchCodeEmail: async (userId, userName, userEmail, verificationUrl, otp, password) => {
     const user_Email = userEmail;
