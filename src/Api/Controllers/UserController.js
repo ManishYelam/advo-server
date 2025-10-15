@@ -90,14 +90,60 @@ module.exports = {
   saveApplication: async (req, res) => {
     try {
       const data = req.body;
-      user_data = { data }
-      case_data = { data }
-      payment_data = { data }
-      const res = await userService.saveApplication(user_data, case_data, payment_data);
-      return res.status(200).json({ data: res });
+      const formatDate = (dateValue) => {
+        if (!dateValue) return null;
+        const date = new Date(dateValue);
+        return isNaN(date.getTime()) ? null : date.toISOString();
+      };
+
+      const user_data = {
+        full_name: data.full_name,
+        dob: formatDate(data.dob),
+        age: data.age,
+        phone_number: data.phone_number,
+        email: data.email,
+        gender: data.gender,
+        occupation: data.occupation,
+        adhar_number: data.adhar_number,
+        address: data.address,
+        notes: data.notes,
+      };
+      const case_data = {
+        saving_account_start_date: formatDate(data.saving_account_start_date),
+        deposit_type: data.deposit_type,
+        deposit_duration_years: data.deposit_duration_years,
+        fixed_deposit_total_amount: data.fixed_deposit_total_amount,
+        interest_rate_fd: data.interest_rate_fd,
+        saving_account_total_amount: data.saving_account_total_amount,
+        interest_rate_saving: data.interest_rate_saving,
+        recurring_deposit_total_amount: data.recurring_deposit_total_amount,
+        interest_rate_recurring: data.interest_rate_recurring,
+        dnyanrudha_investment_total_amount: data.dnyanrudha_investment_total_amount,
+        dynadhara_rate: data.dynadhara_rate,
+      };
+      const payment_data = {
+        method: data.method,
+        payment_id: data.payment_id,
+        amount: data.amount,
+        amount_due: data.amount_due,
+        amount_paid: data.amount_paid,
+        attempts: data.attempts || 0,
+        created_at: formatDate(data.created_at),
+        currency: data.currency,
+        entity: data.entity,
+        order_id: data.order_id,
+        notes: data.notes,
+        offer_id: data.offer_id,
+        receipt: data.receipt,
+        status: data.status,
+      };
+
+      const saved = await userService.saveApplication(user_data, case_data, payment_data);
+      return res.status(200).json({ success: true, message: "✅ Application saved successfully!", data: saved });
     } catch (error) {
-      console.error('Error saving application:', error);
-      return res.status(500).json({ error: 'An error occurred while saving application' });
+      console.error("❌ Error saving application:", error);
+      return res.status(500).json({ error: "An error occurred while saving application" });
     }
   },
-};
+
+}

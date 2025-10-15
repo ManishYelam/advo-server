@@ -10,31 +10,67 @@ const Cases = sequelize.MAIN_DB_NAME.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    name: {
+    saving_account_start_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    deposit_type: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    age: {
+    deposit_duration_years: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    case_number: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    case_name: {
-      type: DataTypes.STRING,
       allowNull: false,
     },
+    fixed_deposit_total_amount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+    },
+    interest_rate_fd: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+    },
+    saving_account_total_amount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+    },
+    interest_rate_saving: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+    },
+    recurring_deposit_total_amount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+    },
+    interest_rate_recurring: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+    },
+    dnyanrudha_investment_total_amount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+    },
+    dynadhara_rate: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+    },
+    // case_number: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false,
+    //   unique: true,
+    // },
+    // case_name: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false,
+    // },
     description: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    case_type: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
+    // case_type: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false,
+    // },
     status: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -52,18 +88,18 @@ const Cases = sequelize.MAIN_DB_NAME.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    client_name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    client_contact: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    client_address: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
+    // client_name: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false,
+    // },
+    // client_contact: {
+    //   type: DataTypes.STRING,
+    //   allowNull: true,
+    // },
+    // client_address: {
+    //   type: DataTypes.STRING,
+    //   allowNull: true,
+    // },
     priority: {
       type: DataTypes.STRING,
       allowNull: true,

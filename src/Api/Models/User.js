@@ -22,6 +22,7 @@ const userAttribute = {
   role: {
     type: DataTypes.STRING(50),
     allowNull: false,
+    defaultValue: "client"
   },
   date_of_birth: {
     type: DataTypes.DATEONLY,
@@ -31,8 +32,20 @@ const userAttribute = {
     type: DataTypes.INTEGER,
     allowNull: true
   },
-  phone_number: {
+  gender: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  adhar_number: {
     type: DataTypes.STRING(15),
+    allowNull: true,
+  },
+  additional_notes: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  phone_number: {
+    type: DataTypes.STRING(10),
     allowNull: true,
   },
   occupation: {

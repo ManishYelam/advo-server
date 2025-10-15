@@ -173,14 +173,17 @@ module.exports = {
   },
 
   saveApplication: async (user_data, case_data, payment_data) => {
+    const t = await sequelize.MAIN_DB_NAME.transaction();
     try {
-      const user = await User.create(user_data);
-      const caseData = await Cases.create({ user_id: user.id, case_data });
-      const paymentData = await Payment.create({ user_id: user.id, case_id: caseData.id, payment_data });
-      return { user, case: caseData, payment: paymentData };
+      const user = await User.create(user_data, { t });
+      const caseData = await Cases.create({ ...case_data, client_id: user.id }, { t });
+      const paymentData = await Payment.create({ ...payment_data, client_id: user.id, case_id: caseData.id }, { t });
+      await t.commit();
+      return { success: true, user, case: caseData, payment: paymentData };
     } catch (error) {
-      console.error("Error saving application:", error);
-      throw new Error("Error saving application");
+      console.error(error.message);
+      await t.rollback();
+      return { success: false, error: "Transaction failed, all changes rolled back." };
     }
   }
 

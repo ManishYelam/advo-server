@@ -3,6 +3,7 @@ const validateAsync = require('../Middlewares/validateAsyncMiddleware');
 const authMiddleware = require('../Middlewares/authorizationMiddleware');
 const { createUserSchema, updateUserSchema } = require('../Middlewares/Joi_Validations/userSchema');
 const userController = require('../Controllers/UserController');
+const uploadPublicMiddleware = require('../Middlewares/uploadPublicMiddleware');
 
 const userRouter = express.Router();
 // User routes
@@ -15,7 +16,7 @@ userRouter
   .put('/:id', authMiddleware, validateAsync(updateUserSchema), userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
   .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
-  .post('/save-application', userController.saveApplication);
+  .post('/save-application', uploadPublicMiddleware, userController.saveApplication);
 
 // Export both routers properly
 module.exports = {

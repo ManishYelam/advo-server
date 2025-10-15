@@ -33,11 +33,6 @@ const Payment = sequelize.MAIN_DB_NAME.define(
       allowNull: true,
       comment: 'Razorpay signature for verification',
     },
-    user_id: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      comment: 'User ID (if applicable)',
-    },
     amount: {
       type: DataTypes.INTEGER,
       allowNull: false,
