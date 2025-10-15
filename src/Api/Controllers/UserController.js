@@ -142,7 +142,7 @@ module.exports = {
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
       console.log(saved);
       // if (saved.success == true) {
-      //   const reg_link = `http://localhost:5173/register-client`;
+      //   const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
       //   await welcomeTemplate(saved.user.id, user_data.full_name, user_data.email, reg_link);
       // }
 
