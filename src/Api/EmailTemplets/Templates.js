@@ -752,7 +752,7 @@ module.exports = {
 
             <!-- Registration/Login Button -->
             <p>Click the button below to complete your registration or login:</p>
-            <a href="${data.registrationUrl}" class="btn">Complete Registration / Login</a>
+            <a href="${data.reg_link}" class="btn">Complete Registration / Login</a>
 
             <p>If you have any questions, feel free to reach out to our support team. We’re here to help!</p>
 
