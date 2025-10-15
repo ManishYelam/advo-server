@@ -13,7 +13,8 @@ userRouter
   .get('/', authMiddleware, userController.getAllUsers)
   .post('/v2', authMiddleware, userController.getAllUsersV2)
   .get('/:id', userController.getUserById)
-  .put('/:id', authMiddleware, validateAsync(updateUserSchema), userController.updateUser)
+  // .put('/:id', authMiddleware, validateAsync(updateUserSchema), userController.updateUser)
+  .put('/:id', userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
   .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
   .post('/save-application', uploadPublicMiddleware, userController.saveApplication);

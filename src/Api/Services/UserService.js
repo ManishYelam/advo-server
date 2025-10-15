@@ -135,18 +135,26 @@ module.exports = {
       }
       // Prepare updated user data
       const updatedUserData = {
-        username: data.username ?? user.username,
-        email: data.email ?? user.email,
-        first_name: data.first_name ?? user.first_name,
-        last_name: data.last_name ?? user.last_name,
+        full_name: data.full_name ?? user.full_name,
         date_of_birth: data.date_of_birth ?? user.date_of_birth,
+        age: data.age ?? user.age,
+        password: data.password ?? user.password,
+        email: data.email ?? user.email,
         phone_number: data.phone_number ?? user.phone_number,
-        whatsapp_number: data.whatsapp_number ?? user.whatsapp_number,
+        adhar_number: data.adhar_number ?? user.adhar_number,
+        occupation: data.occupation ?? user.occupation,
+        gender: data.gender ?? user.gender,
         address: data.address ?? user.address,
+        additional_notes: data.additional_notes ?? user.additional_notes,
         status: data.status ?? user.status,
         role_id: data.role_id ?? user.role_id,
-        user_metadata: data.user_metadata ? { ...user.user_metadata, ...data.user_metadata } : user.user_metadata,
+        user_metadata: data.user_metadata
+          ? { ...user.user_metadata, ...data.user_metadata }
+          : user.user_metadata,
       };
+      const hashedPassword = await hashPassword(data.password);
+      updatedUserData.password = hashedPassword;
+
       // Update user record
       await user.update(updatedUserData, { transaction });
       await transaction.commit();
