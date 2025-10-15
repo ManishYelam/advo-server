@@ -1,4 +1,5 @@
 const { generateUniqueIDForHealth } = require('../../Utils/generateUniqueID');
+const { deleteFile } = require('../Helpers/fileHelper');
 const { sendApplicantRegEmail } = require('../Services/email.Service');
 const userService = require('../Services/UserService');
 
@@ -91,6 +92,7 @@ module.exports = {
   saveApplication: async (req, res) => {
     try {
       const data = req.body;
+      console.log("Single file:", req.file.path);
 
       const formatDate = (dateValue) => {
         if (!dateValue) return null;
@@ -145,8 +147,7 @@ module.exports = {
       };
 
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
-
-      // Optionally send registration email
+    
       if (saved.success == true) {
         const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
         sendApplicantRegEmail(saved.user.id, user_data.full_name, user_data.email, reg_link);
@@ -155,6 +156,13 @@ module.exports = {
       return res.status(200).json({ message: "✅ Application saved successfully!", data: saved });
     } catch (error) {
       console.error("❌ Error saving application:", error);
+      if (req.file) {
+        try {
+          deleteFile(req.file.path);
+        } catch (err) {
+          console.error("Error deleting single file:", err.message);
+        }
+      }
       return res.status(500).json({ error: "An error occurred while saving application" });
     }
   }
