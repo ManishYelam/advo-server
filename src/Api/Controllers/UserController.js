@@ -91,9 +91,14 @@ module.exports = {
 
   saveApplication: async (req, res) => {
     try {
-      const data = req.body;
-      console.log("Single file:", req.file.path);
+      // ✅ STEP 1: Parse the JSON string
+      const body = req.body.data ? JSON.parse(req.body.data) : req.body;
+      console.log(req.file);
 
+      console.log("Single file:", req.file?.path);
+      console.log("Parsed body data:", body);
+
+      // ✅ STEP 2: Use 'body' instead of 'data'
       const formatDate = (dateValue) => {
         if (!dateValue) return null;
         const date = new Date(dateValue);
@@ -103,52 +108,70 @@ module.exports = {
       const parseNumber = (value) => (value ? parseFloat(value) : 0);
 
       const user_data = {
-        full_name: data.full_name,
-        dob: formatDate(data.dob),
-        age: data.age ? parseInt(data.age, 10) : "",
-        phone_number: data.phone_number,
-        email: data.email,
-        gender: data.gender,
-        occupation: data.occupation,
-        adhar_number: data.adhar_number,
-        address: data.address,
-        notes: data.notes,
+        full_name: body.full_name,
+        dob: formatDate(body.date_of_birth),
+        age: body.age ? parseInt(body.age, 10) : "",
+        phone_number: body.phone_number,
+        email: body.email,
+        gender: body.gender,
+        occupation: body.occupation,
+        adhar_number: body.adhar_number,
+        address: body.address,
+        additional_notes: body.additional_notes,
       };
 
       const case_data = {
-        saving_account_start_date: formatDate(data.saving_account_start_date),
-        deposit_type: data.deposit_type,
-        deposit_duration_years: parseNumber(data.deposit_duration_years),
-        fixed_deposit_total_amount: parseNumber(data.fixed_deposit_total_amount),
-        interest_rate_fd: parseNumber(data.interest_rate_fd),
-        saving_account_total_amount: parseNumber(data.saving_account_total_amount),
-        interest_rate_saving: parseNumber(data.interest_rate_saving),
-        recurring_deposit_total_amount: parseNumber(data.recurring_deposit_total_amount),
-        interest_rate_recurring: parseNumber(data.interest_rate_recurring),
-        dnyanrudha_investment_total_amount: parseNumber(data.dnyanrudha_investment_total_amount),
-        dynadhara_rate: parseNumber(data.dynadhara_rate),
+        saving_account_start_date: formatDate(body.saving_account_start_date),
+        deposit_type: body.deposit_type,
+        deposit_duration_years: parseNumber(body.deposit_duration_years),
+        fixed_deposit_total_amount: parseNumber(body.fixed_deposit_total_amount),
+        interest_rate_fd: parseNumber(body.interest_rate_fd),
+        saving_account_total_amount: parseNumber(body.saving_account_total_amount),
+        interest_rate_saving: parseNumber(body.interest_rate_saving),
+        recurring_deposit_total_amount: parseNumber(body.recurring_deposit_total_amount),
+        interest_rate_recurring: parseNumber(body.interest_rate_recurring),
+        dnyanrudha_investment_total_amount: parseNumber(body.dnyanrudha_investment_total_amount),
+        dynadhara_rate: parseNumber(body.dynadhara_rate),
+        verified: body.verified,
+        documents: req.file
+          ? [
+            {
+              filename: req.file.filename,
+              originalname: req.file.originalname,
+              path: req.file.path,
+              url: `/uploads/${req.file.filename}`,
+              uploadedAt: new Date().toISOString(),
+            },
+          ]
+          : [],
       };
 
       const payment_data = {
-        method: data.method,
-        payment_id: data.payment_id,
-        amount: parseNumber(data.amount),
-        amount_due: parseNumber(data.amount_due),
-        amount_paid: parseNumber(data.amount_paid),
-        attempts: data.attempts || 0,
-        created_at: formatDate(data.created_at),
-        currency: data.currency,
-        entity: data.entity,
-        order_id: data.order_id,
-        notes: data.notes,
-        offer_id: data.offer_id,
-        receipt: data.receipt,
-        status: data.status,
+        method: body.method,
+        payment_id: body.paymentId || body.payment_id,
+        amount: body.order?.order?.amount || 0,
+        amount_due: body.order?.order?.amount_due || 0,
+        amount_paid: body.order?.order?.amount_paid || 0,
+        attempts: body.order?.order?.attempts || 0,
+        created_at: body.order?.order?.created_at
+          ? new Date(body.order.order.created_at * 1000).toISOString()
+          : null,
+        currency: body.order?.order?.currency,
+        entity: body.order?.order?.entity,
+        order_id: body.order?.order?.id || body.orderId || body.order_id,
+        notes: body.order?.order?.notes,
+        offer_id: body.order?.order?.offer_id,
+        receipt: body.order?.order?.receipt,
+        status: body.status || body.order?.order?.status || "Pending",
       };
 
+      console.log("✅ user_data:", user_data);
+      console.log("✅ case_data:", case_data);
+      console.log("✅ payment_data:", payment_data);
+
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
-    
-      if (saved.success == true) {
+
+      if (saved.success === true) {
         const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
         sendApplicantRegEmail(saved.user.id, user_data.full_name, user_data.email, reg_link);
       }
@@ -166,6 +189,7 @@ module.exports = {
       return res.status(500).json({ error: "An error occurred while saving application" });
     }
   }
+
 
 
 }
