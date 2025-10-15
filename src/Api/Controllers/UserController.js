@@ -91,16 +91,19 @@ module.exports = {
   saveApplication: async (req, res) => {
     try {
       const data = req.body;
+
       const formatDate = (dateValue) => {
         if (!dateValue) return null;
         const date = new Date(dateValue);
         return isNaN(date.getTime()) ? null : date.toISOString();
       };
 
+      const parseNumber = (value) => (value ? parseFloat(value) : 0);
+
       const user_data = {
         full_name: data.full_name,
         dob: formatDate(data.dob),
-        age: data.age,
+        age: data.age ? parseInt(data.age, 10) : "",
         phone_number: data.phone_number,
         email: data.email,
         gender: data.gender,
@@ -109,25 +112,27 @@ module.exports = {
         address: data.address,
         notes: data.notes,
       };
+
       const case_data = {
         saving_account_start_date: formatDate(data.saving_account_start_date),
         deposit_type: data.deposit_type,
-        deposit_duration_years: data.deposit_duration_years,
-        fixed_deposit_total_amount: data.fixed_deposit_total_amount,
-        interest_rate_fd: data.interest_rate_fd,
-        saving_account_total_amount: data.saving_account_total_amount,
-        interest_rate_saving: data.interest_rate_saving,
-        recurring_deposit_total_amount: data.recurring_deposit_total_amount,
-        interest_rate_recurring: data.interest_rate_recurring,
-        dnyanrudha_investment_total_amount: data.dnyanrudha_investment_total_amount,
-        dynadhara_rate: data.dynadhara_rate,
+        deposit_duration_years: parseNumber(data.deposit_duration_years),
+        fixed_deposit_total_amount: parseNumber(data.fixed_deposit_total_amount),
+        interest_rate_fd: parseNumber(data.interest_rate_fd),
+        saving_account_total_amount: parseNumber(data.saving_account_total_amount),
+        interest_rate_saving: parseNumber(data.interest_rate_saving),
+        recurring_deposit_total_amount: parseNumber(data.recurring_deposit_total_amount),
+        interest_rate_recurring: parseNumber(data.interest_rate_recurring),
+        dnyanrudha_investment_total_amount: parseNumber(data.dnyanrudha_investment_total_amount),
+        dynadhara_rate: parseNumber(data.dynadhara_rate),
       };
+
       const payment_data = {
         method: data.method,
         payment_id: data.payment_id,
-        amount: data.amount,
-        amount_due: data.amount_due,
-        amount_paid: data.amount_paid,
+        amount: parseNumber(data.amount),
+        amount_due: parseNumber(data.amount_due),
+        amount_paid: parseNumber(data.amount_paid),
         attempts: data.attempts || 0,
         created_at: formatDate(data.created_at),
         currency: data.currency,
@@ -140,8 +145,9 @@ module.exports = {
       };
 
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
-      console.log(saved);
-      // if (saved.success == true) {
+
+      // Optionally send registration email
+      // if (saved.success) {
       //   const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
       //   await welcomeTemplate(saved.user.id, user_data.full_name, user_data.email, reg_link);
       // }
@@ -151,6 +157,7 @@ module.exports = {
       console.error("❌ Error saving application:", error);
       return res.status(500).json({ error: "An error occurred while saving application" });
     }
-  },
+  }
+
 
 }

@@ -12,7 +12,7 @@ userRouter
   .get('/verify', userController.verifyCreateUser)
   .get('/', authMiddleware, userController.getAllUsers)
   .post('/v2', authMiddleware, userController.getAllUsersV2)
-  .get('/:id', authMiddleware, userController.getUserById)
+  .get('/:id', userController.getUserById)
   .put('/:id', authMiddleware, validateAsync(updateUserSchema), userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
   .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
