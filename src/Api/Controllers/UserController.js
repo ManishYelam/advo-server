@@ -4,6 +4,37 @@ const { sendApplicantRegEmail } = require('../Services/email.Service');
 const userService = require('../Services/UserService');
 
 module.exports = {
+  checkExistsEmail: async (req, res) => {
+    try {
+      const { email } = req.body;  
+      if (!email) {
+        return res.status(400).json({ success: false, message: "Email is required" });
+      }
+      const user = await userService.checkExistsEmail(email)   
+      if (user) {
+        return res.status(200).json({
+          success: true,
+          exists: true,
+          message: "Email already exists",
+          user: {
+            id: user.id,
+            full_namename: user.name,
+            email: user.email
+          }
+        });
+      } else {
+        return res.status(200).json({
+          success: true,
+          exists: false,
+          message: "Email not found"
+        });
+      }
+    } catch (error) {
+      console.error("Error checking email:", error);
+      res.status(500).json({ success: false, message: "Server error", error: error.message });
+    }
+  },
+
   createUser: async (req, res) => {
     try {
       const newUser = await userService.createUser(req.body);
