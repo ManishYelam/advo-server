@@ -13,54 +13,72 @@ const CaseService = {
   },
 
   // Get all cases for a client (pagination can be added)
-  getAllCases: async ({ page = 1, limit = 10, search = '', searchFields = [], filters = {} }) => {
+  getAllCases: async ({ page = 1, limit = 10, search = "", searchFields = [], filters = {} }) => {
     try {
-      // Pagination offset and limit
       const offset = (page - 1) * limit;
 
-      // Initialize where conditions (for filters)
-      let whereConditions = {};
+      // 🔹 Step 1: Build Filters
+      const whereConditions = {};
 
-      // **Apply Filters Dynamically**
       if (filters.status) whereConditions.status = filters.status;
-      if (filters.case_type) whereConditions.case_type = filters.case_type;
-      if (filters.client_name) whereConditions.client_name = { [Op.like]: `%${filters.client_name}%` };
-      if (filters.opposing_party) whereConditions.opposing_party = { [Op.like]: `%${filters.opposing_party}%` };
-      if (filters.court_name) whereConditions.court_name = { [Op.like]: `%${filters.court_name}%` };
-      if (filters.priority) whereConditions.priority = filters.priority;
-      if (filters.legal_category) whereConditions.legal_category = filters.legal_category;
-      if (filters.payment_status) whereConditions.payment_status = filters.payment_status;
-      if (filters.case_outcome) whereConditions.case_outcome = filters.case_outcome;
-      if (filters.client_id) whereConditions.client_id = filters.client_id; // Client ID filter
+      if (filters.deposit_type) whereConditions.deposit_type = filters.deposit_type;
+      if (filters.verified)
+        whereConditions.verified = filters.verified === "true" || filters.verified === true;
+      if (filters.client_id) whereConditions.client_id = filters.client_id;
+      if (filters.deposit_duration_years)
+        whereConditions.deposit_duration_years = filters.deposit_duration_years;
 
-      // **Apply Dynamic Search Using `.map()`**
-      let searchConditions =
-        search && searchFields.length > 0 ? searchFields.map(field => ({ [field]: { [Op.like]: `%${search}%` } })) : [];
-
-      // **Combine Filters and Search**
-      let finalWhereCondition = { ...whereConditions };
-      if (searchConditions.length > 0) {
-        finalWhereCondition[Op.or] = searchConditions;
+      // 🔹 Step 2: Build Dynamic Search
+      let searchConditions = [];
+      if (search && searchFields.length > 0) {
+        searchConditions = searchFields.map((field) => ({
+          [field]: { [Op.like]: `%${search}%` },
+        }));
       }
 
-      // **Fetch Cases with Filters, Pagination, and Sorting**
+      // 🔹 Step 3: Combine Filters + Search
+      const finalWhere = { ...whereConditions };
+      if (searchConditions.length > 0) {
+        finalWhere[Op.or] = searchConditions;
+      }
+
+      // 🔹 Step 4: Fetch Data
       const { rows, count } = await Cases.findAndCountAll({
-        where: finalWhereCondition, // Conditions based on filters and search
-        limit, // Pagination limit
-        offset, // Pagination offset
-        order: [['createdAt', 'DESC']], // Sorting by created_at column (descending)
+        where: finalWhere,
+        offset,
+        limit: parseInt(limit),
+        order: [["createdAt", "DESC"]],
+        attributes: [
+          "id",
+          "client_id",
+          "status",
+          "saving_account_start_date",
+          "deposit_type",
+          "deposit_duration_years",
+          "fixed_deposit_total_amount",
+          "interest_rate_fd",
+          "saving_account_total_amount",
+          "interest_rate_saving",
+          "recurring_deposit_total_amount",
+          "interest_rate_recurring",
+          "dnyanrudha_investment_total_amount",
+          "dynadhara_rate",
+          "verified",
+          "documents",
+          "createdAt",
+        ],
       });
 
       return {
-        message: '✅ Cases fetched successfully.',
+        message: "✅ Cases fetched successfully.",
         totalRecords: count,
         totalPages: Math.ceil(count / limit),
-        currentPage: page,
+        currentPage: parseInt(page),
         data: rows,
       };
     } catch (error) {
-      console.error('❌ Error in getAllCases:', error.message);
-      throw new Error(`❌ Error in getAllCases: ${error.message}`);
+      console.error("❌ Error in caseService.getAllCases:", error.message);
+      throw new Error(error.message);
     }
   },
 
