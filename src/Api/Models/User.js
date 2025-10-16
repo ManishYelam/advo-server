@@ -34,7 +34,7 @@ const userAttribute = {
   },
   gender: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   adhar_number: {
     type: DataTypes.STRING(15),
