@@ -6,11 +6,12 @@ const userService = require('../Services/UserService');
 module.exports = {
   checkExistsEmail: async (req, res) => {
     try {
-      const { email } = req.body;  
+      const { email } = req.body;
+      //console.log(email);
       if (!email) {
         return res.status(400).json({ success: false, message: "Email is required" });
       }
-      const user = await userService.checkExistsEmail(email)   
+      const user = await userService.checkExistsEmail(email)
       if (user) {
         return res.status(200).json({
           success: true,
