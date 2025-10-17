@@ -66,6 +66,7 @@ const CaseService = {
           "verified",
           "documents",
           "createdAt",
+          "updatedAt",
         ],
       });
 
