@@ -183,10 +183,25 @@ module.exports = {
   saveApplication: async (user_data, case_data, payment_data) => {
     const t = await sequelize.MAIN_DB_NAME.transaction();
     try {
-      const user = await User.create(user_data, { t });
-      const caseData = await Cases.create({ ...case_data, client_id: user.id }, { t });
-      const paymentData = await Payment.create({ ...payment_data, client_id: user.id, case_id: caseData.id }, { t });
+      let user = await User.findOne({ where: { email: user_data.email }, transaction: t });
+
+      if (user) {
+        const hashedPassword = user_data.password ? await hashPassword(user_data.password) : user.password;
+        await user.update({ ...user_data, password: hashedPassword }, { transaction: t });
+      } else {
+        if (user_data.password) { user_data.password = await hashPassword(user_data.password); }
+        user = await User.create(user_data, { transaction: t });
+      }
+
+      const caseData = await Cases.create({ ...case_data, client_id: user.id }, { transaction: t });
+
+      const paymentData = await Payment.create(
+        { ...payment_data, client_id: user.id, case_id: caseData.id },
+        { transaction: t }
+      );
+
       await t.commit();
+
       return { success: true, user, case: caseData, payment: paymentData };
     } catch (error) {
       console.error(error.message);
