@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const Cases = require('../Models/Cases');
+const Payment = require('../Models/Payment');
 
 const CaseService = {
   // Create a new case
@@ -17,32 +18,23 @@ const CaseService = {
     try {
       const offset = (page - 1) * limit;
 
-      // 🔹 Step 1: Build Filters
       const whereConditions = {};
-
       if (filters.status) whereConditions.status = filters.status;
       if (filters.deposit_type) whereConditions.deposit_type = filters.deposit_type;
-      if (filters.verified)
-        whereConditions.verified = filters.verified === "true" || filters.verified === true;
+      if (filters.verified) whereConditions.verified = filters.verified === "true" || filters.verified === true;
       if (filters.client_id) whereConditions.client_id = filters.client_id;
-      if (filters.deposit_duration_years)
-        whereConditions.deposit_duration_years = filters.deposit_duration_years;
+      if (filters.deposit_duration_years) whereConditions.deposit_duration_years = filters.deposit_duration_years;
 
-      // 🔹 Step 2: Build Dynamic Search
       let searchConditions = [];
-      if (search && searchFields.length > 0) {
+      if (search && searchFields.length) {
         searchConditions = searchFields.map((field) => ({
           [field]: { [Op.like]: `%${search}%` },
         }));
       }
 
-      // 🔹 Step 3: Combine Filters + Search
       const finalWhere = { ...whereConditions };
-      if (searchConditions.length > 0) {
-        finalWhere[Op.or] = searchConditions;
-      }
+      if (searchConditions.length) finalWhere[Op.or] = searchConditions;
 
-      // 🔹 Step 4: Fetch Data
       const { rows, count } = await Cases.findAndCountAll({
         where: finalWhere,
         offset,
@@ -67,6 +59,28 @@ const CaseService = {
           "documents",
           "createdAt",
           "updatedAt",
+        ],
+        include: [
+          {
+            model: Payment,
+            as: "payments",
+            attributes: [
+              "id",
+              "amount",
+              "currency",
+              "status",
+              "method",
+              "receipt",
+              "payment_id",
+              "order_id",
+              "amount_due",
+              "client_id",
+              "case_id",
+              "notes",
+              "createdAt",
+              "updatedAt",
+            ],
+          },
         ],
       });
 

@@ -14,6 +14,9 @@ Cases.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
 User.hasMany(Cases, { foreignKey: 'advocateId', as: 'assignedCases' });
 Cases.belongsTo(User, { foreignKey: 'advocateId', as: 'advocate' });
 
+Cases.hasMany(Payment, { foreignKey: "case_id", as: "payments" });
+Payment.belongsTo(Cases, { foreignKey: "id", as: "case" });
+
 module.exports = {
   User,
   Organization,
