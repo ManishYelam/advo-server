@@ -127,43 +127,65 @@ module.exports = {
   },
 
   updateUser: async (userId, data) => {
-    const transaction = await sequelize.MAIN_DB_NAME.transaction();
-    try {
-      const user = await User.findByPk(userId, { transaction });
-      if (!user) {
-        throw new Error('User not found');
-      }
-      // Prepare updated user data
-      const updatedUserData = {
-        full_name: data.full_name ?? user.full_name,
-        date_of_birth: data.date_of_birth ?? user.date_of_birth,
-        age: data.age ?? user.age,
-        password: data.password ?? user.password,
-        email: data.email ?? user.email,
-        phone_number: data.phone_number ?? user.phone_number,
-        adhar_number: data.adhar_number ?? user.adhar_number,
-        occupation: data.occupation ?? user.occupation,
-        gender: data.gender ?? user.gender,
-        address: data.address ?? user.address,
-        additional_notes: data.additional_notes ?? user.additional_notes,
-        status: data.status ?? user.status,
-        role_id: data.role_id ?? user.role_id,
-        user_metadata: data.user_metadata
-          ? { ...user.user_metadata, ...data.user_metadata }
-          : user.user_metadata,
-      };
+  const transaction = await sequelize.MAIN_DB_NAME.transaction();
+  try {
+    const user = await User.findByPk(userId, { transaction });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    // Prepare updated user data
+    const updatedUserData = {
+      full_name: data.full_name ?? user.full_name,
+      date_of_birth: data.date_of_birth ?? user.date_of_birth,
+      age: data.age ?? user.age,
+      email: data.email ?? user.email,
+      phone_number: data.phone_number ?? user.phone_number,
+      adhar_number: data.adhar_number ?? user.adhar_number,
+      occupation: data.occupation ?? user.occupation,
+      gender: data.gender ?? user.gender,
+      address: data.address ?? user.address,
+      additional_notes: data.additional_notes ?? user.additional_notes,
+      status: data.status ?? user.status,
+      role_id: data.role_id ?? user.role_id,
+      user_metadata: data.user_metadata
+        ? { ...user.user_metadata, ...data.user_metadata }
+        : user.user_metadata,
+    };
+
+    // Check edit_flag to determine if we should update password
+    if (data.edit_flag === 'profile_edit') {
+      // Profile edit - keep existing password, don't hash anything
+      updatedUserData.password = user.password;
+      console.log('Profile edit - preserving existing password');
+    } else if (data.password) {
+      // Regular update with password - hash the new password
       const hashedPassword = await hashPassword(data.password);
       updatedUserData.password = hashedPassword;
-
-      // Update user record
-      await user.update(updatedUserData, { transaction });
-      await transaction.commit();
-      return { updatedUser: user };
-    } catch (error) {
-      await transaction.rollback();
-      throw new Error('Error updating user: ' + error.message);
+      console.log('Password update - hashing new password');
+    } else {
+      // No password provided and no edit_flag - keep existing password
+      updatedUserData.password = user.password;
+      console.log('No password provided - preserving existing password');
     }
-  },
+
+    // Update user record
+    await user.update(updatedUserData, { transaction });
+    await transaction.commit();
+    
+    // Return user without password for security
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+    
+    return { 
+      message: 'User updated successfully',
+      user: userResponse
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw new Error('Error updating user: ' + error.message);
+  }
+},
 
   deleteUser: id => {
     return User.destroy({ where: { id } });
