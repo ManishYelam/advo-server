@@ -1,5 +1,5 @@
 const { sequelize } = require('../../Config/Database/db.config');
-const { User, ApplicationProperties, ListOfValues, Organization, Cases, Contact, Payment } = require('./Association');
+const { User, ApplicationProperties, ListOfValues, Organization, Cases, Contact, Payment, UserDocument } = require('./Association');
 
 module.exports = {
   InitializeDatabase: async () => {
@@ -14,6 +14,7 @@ module.exports = {
         Cases.sync({ alter: false }),
         Contact.sync({ alter: false }),
         Payment.sync({ alter: false }),
+        UserDocument.sync({ alter: false }),
       ]);
     } catch (error) {
       console.error('Error syncing database:', error);

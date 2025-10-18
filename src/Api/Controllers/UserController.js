@@ -1,4 +1,6 @@
-const { generateUniqueIDForHealth } = require('../../Utils/generateUniqueID');
+const fs = require('fs');
+const path = require('path');
+const { generateApplicationPDF } = require('../../Utils/generateApplicationPDF');
 const { deleteFile } = require('../Helpers/fileHelper');
 const { sendApplicantRegEmail } = require('../Services/email.Service');
 const userService = require('../Services/UserService');
@@ -121,16 +123,25 @@ module.exports = {
     }
   },
 
+  // Save Application Function
   saveApplication: async (req, res) => {
+    console.log(req);
+
+
+    let storedFilePath = null;
+
     try {
-      // ✅ STEP 1: Parse the JSON string
-      const body = req.body.data ? JSON.parse(req.body.data) : req.body;
-      console.log(req.file);
+      const body = req.body;
+      const UPLOAD_DIR = process.env.UPLOAD_DIR;
 
-      console.log("Single file:", req.file?.path);
-      console.log("Parsed body data:", body);
+      // Helper function to ensure directory exists (sync)
+      const ensureDirExists = (dirPath) => {
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, { recursive: true });
+          // console.log(`✅ Created directory: ${dirPath}`);
+        }
+      };
 
-      // ✅ STEP 2: Use 'body' instead of 'data'
       const formatDate = (dateValue) => {
         if (!dateValue) return null;
         const date = new Date(dateValue);
@@ -165,63 +176,120 @@ module.exports = {
         dnyanrudha_investment_total_amount: parseNumber(body.dnyanrudha_investment_total_amount),
         dynadhara_rate: parseNumber(body.dynadhara_rate),
         verified: body.verified,
-        documents: req.file
-          ? [
-            {
-              filename: req.file.filename,
-              originalname: req.file.originalname,
-              path: req.file.path,
-              url: `/uploads/${req.file.filename}`,
-              uploadedAt: new Date().toISOString(),
-            },
-          ]
-          : [],
+        documents: body.documents || {},
       };
 
       const payment_data = {
         method: body.method,
         payment_id: body.paymentId || body.payment_id,
-        amount: body.order?.order?.amount || 0,
-        amount_due: body.order?.order?.amount_due || 0,
-        amount_paid: body.order?.order?.amount_paid || 0,
-        attempts: body.order?.order?.attempts || 0,
-        created_at: body.order?.order?.created_at
-          ? new Date(body.order.order.created_at * 1000).toISOString()
+        amount: body.order?.amount || body.amount || 0,
+        amount_due: body.order?.amount_due || 0,
+        amount_paid: body.order?.amount_paid || 0,
+        attempts: body.order?.attempts || 0,
+        created_at: body.order?.created_at
+          ? new Date(body.order.created_at * 1000).toISOString()
           : null,
-        currency: body.order?.order?.currency,
-        entity: body.order?.order?.entity,
-        order_id: body.order?.order?.id || body.orderId || body.order_id,
-        notes: body.order?.order?.notes,
-        offer_id: body.order?.order?.offer_id,
-        receipt: body.order?.order?.receipt,
-        status: body.status || body.order?.order?.status || "Pending",
+        currency: body.order?.currency,
+        entity: body.order?.entity,
+        order_id: body.order?.id || body.orderId || body.order_id,
+        notes: body.order?.notes,
+        offer_id: body.order?.offer_id,
+        receipt: body.order?.receipt,
+        status: body.status || body.order?.status || "Pending",
       };
 
-      console.log("✅ user_data:", user_data);
-      console.log("✅ case_data:", case_data);
-      console.log("✅ payment_data:", payment_data);
-
+      // Save application data
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
 
-      if (saved.success === true) {
-        const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
-        sendApplicantRegEmail(saved.user.id, user_data.full_name, user_data.email, reg_link);
+      if (!saved.success) {
+        throw new Error('Failed to save application data');
       }
 
-      return res.status(200).json({ message: "✅ Application saved successfully!", data: saved });
-    } catch (error) {
-      console.error("❌ Error saving application:", error);
-      if (req.file) {
+      // Generate PDF
+      const pdfBuffer = await generateApplicationPDF(user_data, case_data, payment_data, body.documents);
+
+      if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
+        console.warn('⚠️ PDF generation returned invalid buffer');
+      }
+
+      // Store PDF file if generation was successful
+      if (pdfBuffer && Buffer.isBuffer(pdfBuffer) && saved.user?.id) {
         try {
-          deleteFile(req.file.path);
-        } catch (err) {
-          console.error("Error deleting single file:", err.message);
+          const userFolder = path.join(UPLOAD_DIR, saved.user.id.toString());
+
+          // Ensure user directory exists (sync)
+          ensureDirExists(userFolder);
+
+          // Generate unique filename
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const filename = `application_${saved.user.id}_${timestamp}.pdf`;
+          storedFilePath = path.join(userFolder, filename);
+
+          // Write file (sync)
+          fs.writeFileSync(storedFilePath, pdfBuffer);
+          // console.log(`✅ PDF stored successfully: ${storedFilePath}`);
+
+          // Optional: You can store the file path in your database here
+          await userService.updateApplicationFilePath(
+            saved.user.id,
+            storedFilePath,
+            {
+              applicationId: saved.case?.id || saved.application?.id, // Use saved.case.id
+              documentType: 'application_pdf',
+              fileSize: pdfBuffer.length,
+              fileName: filename, // Pass the filename
+              description: 'Application Form PDF'
+            }
+          );
+        } catch (storageError) {
+          console.error('❌ Failed to store PDF file:', storageError);
+          storedFilePath = null;
+          // Continue with email even if storage fails
         }
       }
-      return res.status(500).json({ error: "An error occurred while saving application" });
+
+      // Send email with attachment (only if not logged in)
+      if (!body.isLogin && saved.user?.id && user_data.email) {
+        const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
+
+        await sendApplicantRegEmail(
+          saved.user.id,
+          user_data.full_name,
+          user_data.email,
+          reg_link,
+          pdfBuffer, // Send buffer for email attachment
+          storedFilePath // Pass file path for reference
+        );
+      }
+
+      const result = {
+        message: "✅ Application saved successfully!",
+        data: saved,
+        pdfGenerated: !!pdfBuffer,
+        pdfStored: !!storedFilePath,
+        storedFilePath: storedFilePath,
+        userId: saved.user?.id
+      };
+
+      return res.status(200).json(result);
+
+    } catch (error) {
+      console.error("❌ Error saving application:", error);
+
+      // Clean up stored file if there was an error after storage (sync)
+      if (storedFilePath && fs.existsSync(storedFilePath)) {
+        try {
+          fs.unlinkSync(storedFilePath);
+          // console.log(`🧹 Cleaned up file due to error: ${storedFilePath}`);
+        } catch (cleanupError) {
+          console.error('❌ Error cleaning up file:', cleanupError);
+        }
+      }
+
+      return res.status(500).json({
+        error: "An error occurred while saving application",
+        details: error.message
+      });
     }
   }
-
-
-
 }

@@ -2,7 +2,7 @@ const { hashPassword } = require('../Helpers/hashPassword');
 const { Op } = require('sequelize');
 const { generateOTPTimestamped, verifyOTPTimestamped, generateStrongPassword } = require('../../Utils/OTP');
 const { sendLaunchCodeEmail, sendVerificationEmail } = require('./email.Service');
-const { User, Role, Permission, Cases, Payment } = require('../Models/Association');
+const { User, Role, Permission, Cases, Payment, UserDocument } = require('../Models/Association');
 const { sequelize } = require('../../Config/Database/db.config');
 
 module.exports = {
@@ -127,65 +127,65 @@ module.exports = {
   },
 
   updateUser: async (userId, data) => {
-  const transaction = await sequelize.MAIN_DB_NAME.transaction();
-  try {
-    const user = await User.findByPk(userId, { transaction });
-    if (!user) {
-      throw new Error('User not found');
-    }
-    
-    // Prepare updated user data
-    const updatedUserData = {
-      full_name: data.full_name ?? user.full_name,
-      date_of_birth: data.date_of_birth ?? user.date_of_birth,
-      age: data.age ?? user.age,
-      email: data.email ?? user.email,
-      phone_number: data.phone_number ?? user.phone_number,
-      adhar_number: data.adhar_number ?? user.adhar_number,
-      occupation: data.occupation ?? user.occupation,
-      gender: data.gender ?? user.gender,
-      address: data.address ?? user.address,
-      additional_notes: data.additional_notes ?? user.additional_notes,
-      status: data.status ?? user.status,
-      role_id: data.role_id ?? user.role_id,
-      user_metadata: data.user_metadata
-        ? { ...user.user_metadata, ...data.user_metadata }
-        : user.user_metadata,
-    };
+    const transaction = await sequelize.MAIN_DB_NAME.transaction();
+    try {
+      const user = await User.findByPk(userId, { transaction });
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    // Check edit_flag to determine if we should update password
-    if (data.edit_flag === 'profile_edit') {
-      // Profile edit - keep existing password, don't hash anything
-      updatedUserData.password = user.password;
-      console.log('Profile edit - preserving existing password');
-    } else if (data.password) {
-      // Regular update with password - hash the new password
-      const hashedPassword = await hashPassword(data.password);
-      updatedUserData.password = hashedPassword;
-      console.log('Password update - hashing new password');
-    } else {
-      // No password provided and no edit_flag - keep existing password
-      updatedUserData.password = user.password;
-      console.log('No password provided - preserving existing password');
-    }
+      // Prepare updated user data
+      const updatedUserData = {
+        full_name: data.full_name ?? user.full_name,
+        date_of_birth: data.date_of_birth ?? user.date_of_birth,
+        age: data.age ?? user.age,
+        email: data.email ?? user.email,
+        phone_number: data.phone_number ?? user.phone_number,
+        adhar_number: data.adhar_number ?? user.adhar_number,
+        occupation: data.occupation ?? user.occupation,
+        gender: data.gender ?? user.gender,
+        address: data.address ?? user.address,
+        additional_notes: data.additional_notes ?? user.additional_notes,
+        status: data.status ?? user.status,
+        role_id: data.role_id ?? user.role_id,
+        user_metadata: data.user_metadata
+          ? { ...user.user_metadata, ...data.user_metadata }
+          : user.user_metadata,
+      };
 
-    // Update user record
-    await user.update(updatedUserData, { transaction });
-    await transaction.commit();
-    
-    // Return user without password for security
-    const userResponse = user.toJSON();
-    delete userResponse.password;
-    
-    return { 
-      message: 'User updated successfully',
-      user: userResponse
-    };
-  } catch (error) {
-    await transaction.rollback();
-    throw new Error('Error updating user: ' + error.message);
-  }
-},
+      // Check edit_flag to determine if we should update password
+      if (data.edit_flag === 'profile_edit') {
+        // Profile edit - keep existing password, don't hash anything
+        updatedUserData.password = user.password;
+        console.log('Profile edit - preserving existing password');
+      } else if (data.password) {
+        // Regular update with password - hash the new password
+        const hashedPassword = await hashPassword(data.password);
+        updatedUserData.password = hashedPassword;
+        console.log('Password update - hashing new password');
+      } else {
+        // No password provided and no edit_flag - keep existing password
+        updatedUserData.password = user.password;
+        console.log('No password provided - preserving existing password');
+      }
+
+      // Update user record
+      await user.update(updatedUserData, { transaction });
+      await transaction.commit();
+
+      // Return user without password for security
+      const userResponse = user.toJSON();
+      delete userResponse.password;
+
+      return {
+        message: 'User updated successfully',
+        user: userResponse
+      };
+    } catch (error) {
+      await transaction.rollback();
+      throw new Error('Error updating user: ' + error.message);
+    }
+  },
 
   deleteUser: id => {
     return User.destroy({ where: { id } });
@@ -230,6 +230,114 @@ module.exports = {
       await t.rollback();
       return { success: false, error: "Transaction failed, all changes rolled back." };
     }
-  }
+  },
 
-};
+  updateApplicationFilePath: async (userId, filePath, options = {}) => {
+  try {
+    const {
+      applicationId = null,
+      documentType = 'application_pdf',
+      fileName = null,
+      fileSize = 0,
+      description = 'Application Form PDF',
+      updateUserRecord = true
+    } = options;
+
+    // ✅ Step 1: Find the case
+    const whereClause = { client_id: userId };
+    if (applicationId) {
+      whereClause.id = applicationId;
+    }
+
+    const caseRecord = await Cases.findOne({
+      where: whereClause,
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!caseRecord) {
+      return {
+        success: false,
+        error: "No case found for this user. Please save application first."
+      };
+    }
+
+    // ✅ Step 2: Extract only file paths from existing documents and add new one
+    let currentFilePaths = [];
+    
+    if (caseRecord.documents) {
+      if (Array.isArray(caseRecord.documents)) {
+        // If it's already an array, extract file paths from objects or use strings directly
+        currentFilePaths = caseRecord.documents.map(doc => {
+          if (typeof doc === 'string') {
+            return doc; // Already a file path string
+          } else if (doc && doc.url) {
+            return doc.url; // Extract url from object
+          } else if (doc && doc.path) {
+            return doc.path; // Extract path from object
+          }
+          return null;
+        }).filter(Boolean); // Remove null values
+      } else if (typeof caseRecord.documents === 'object' && caseRecord.documents.url) {
+        // If it's a single object with url
+        currentFilePaths = [caseRecord.documents.url];
+      }
+    }
+
+    // Add the new file path (convert to relative path if needed)
+    const relativeFilePath = filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/');
+    const updatedFilePaths = [...currentFilePaths, relativeFilePath];
+
+    await caseRecord.update({ 
+      documents: updatedFilePaths, 
+      updatedAt: new Date() 
+    });
+
+    // ✅ Step 3: Create UserDocument with full details
+    const userDocument = await UserDocument.create({
+      user_id: userId,
+      case_id: caseRecord.id,
+      document_type: documentType,
+      file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
+      file_path: filePath, // Store full path in UserDocument
+      file_size: fileSize,
+      mime_type: 'application/pdf',
+      description,
+      uploaded_by: userId,
+      is_active: true,
+      metadata: {
+        originalName: fileName,
+        uploadedAt: new Date().toISOString(),
+        documentVersion: '1.0'
+      }
+    });
+
+    // ✅ Step 4: Optionally update User table
+    if (updateUserRecord) {
+      await User.update(
+        {
+          last_application_pdf: relativeFilePath, // Store relative path in User
+          updatedAt: new Date()
+        },
+        { where: { id: userId } }
+      );
+    }
+
+    // console.log(`✅ Case updated for user ${userId}`);
+    // console.log(`✅ UserDocument created with ID: ${userDocument.id}`);
+    // console.log(`✅ File paths in case: ${updatedFilePaths.length}`);
+
+    return {
+      success: true,
+      message: 'File path stored successfully',
+      caseId: caseRecord.id,
+      userDocumentId: userDocument.id,
+      documentsCount: updatedFilePaths.length
+    };
+
+  } catch (error) {
+    console.error('❌ Error updating application file path:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+}

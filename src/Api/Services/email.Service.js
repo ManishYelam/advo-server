@@ -9,7 +9,7 @@ const {
 const { User } = require('../Models/Association');
 
 module.exports = {
-  sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link) => {
+   sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link, pdfBuffer) => {
     const user_Email = userEmail;
     const subject = '🚀 Your Exclusive Service Register Here!';
     const template_Name = 'welcomeTemplate';
@@ -18,7 +18,24 @@ module.exports = {
       userName: fullName,
       reg_link: reg_link,
     };
-    sendMail(user_Email, subject, template_Name, template_Data);
+    let attachments = [];
+    if (pdfBuffer && Buffer.isBuffer(pdfBuffer) && pdfBuffer.length > 0) {
+      attachments = [
+        {
+          filename: `application_${userId}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ];
+    } else {
+      console.error('❌ Invalid PDF buffer, sending email without attachment');
+    }
+    const result = await sendMail(user_Email, subject, template_Name, template_Data, attachments);
+    if (result && result.success === false) {
+      console.error('❌ Failed to send email:', result.message);
+    } else {
+      console.log('✅ Email sent successfully');
+    }
   },
 
   // ✅
