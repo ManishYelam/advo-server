@@ -1,13 +1,6 @@
-// controllers/supportController.js
-const { validationResult } = require('express-validator');
-
-class SupportController {
-  constructor(supportService) {
-    this.supportService = supportService;
-  }
-
+module.exports = {
   // Create new support ticket
-  async createTicket(req, res) {
+  createTicket: async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -30,7 +23,7 @@ class SupportController {
         attachments,
       };
 
-      const ticket = await this.supportService.createTicket(ticketData);
+      const ticket = await supportService.createTicket(ticketData);
 
       res.status(201).json({
         success: true,
@@ -43,10 +36,10 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get user's tickets
-  async getUserTickets(req, res) {
+  getUserTickets: async (req, res) => {
     try {
       const { page = 1, limit = 10, status, category, search } = req.query;
 
@@ -55,7 +48,7 @@ class SupportController {
       if (category) filters.category = category;
       if (search) filters.search = search;
 
-      const result = await this.supportService.getTickets(filters, parseInt(page), parseInt(limit));
+      const result = await supportService.getTickets(filters, parseInt(page), parseInt(limit));
 
       res.json({
         success: true,
@@ -67,10 +60,10 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get all tickets (admin/advocate)
-  async getAllTickets(req, res) {
+  getAllTickets: async (req, res) => {
     try {
       const { page = 1, limit = 10, status, category, priority, assigned_to, case_id, search } = req.query;
 
@@ -87,7 +80,7 @@ class SupportController {
         filters.assigned_to = req.user.id;
       }
 
-      const result = await this.supportService.getTickets(filters, parseInt(page), parseInt(limit));
+      const result = await supportService.getTickets(filters, parseInt(page), parseInt(limit));
 
       res.json({
         success: true,
@@ -99,14 +92,14 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get single ticket
-  async getTicket(req, res) {
+  getTicket: async (req, res) => {
     try {
       const { ticketId } = req.params;
 
-      const ticket = await this.supportService.getTicketById(ticketId);
+      const ticket = await supportService.getTicketById(ticketId);
 
       if (!ticket) {
         return res.status(404).json({
@@ -133,25 +126,16 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Update ticket
-  async updateTicket(req, res) {
+  updateTicket: async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
       const { ticketId } = req.params;
       const updateData = req.body;
 
       // Check if ticket exists and user has access
-      const existingTicket = await this.supportService.getTicketById(ticketId);
+      const existingTicket = await supportService.getTicketById(ticketId);
       if (!existingTicket) {
         return res.status(404).json({
           success: false,
@@ -178,7 +162,7 @@ class SupportController {
         });
       }
 
-      const ticket = await this.supportService.updateTicket(ticketId, updateData);
+      const ticket = await supportService.updateTicket(ticketId, updateData);
 
       res.json({
         success: true,
@@ -191,14 +175,14 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Delete ticket (admin only)
-  async deleteTicket(req, res) {
+  deleteTicket: async (req, res) => {
     try {
       const { ticketId } = req.params;
 
-      const result = await this.supportService.deleteTicket(ticketId);
+      const result = await supportService.deleteTicket(ticketId);
 
       res.json({
         success: true,
@@ -210,25 +194,16 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Add message to ticket
-  async addMessage(req, res) {
+  addMessage: async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
       const { ticketId } = req.params;
       const { message, is_internal = false } = req.body;
 
       // Check if ticket exists and user has access
-      const ticket = await this.supportService.getTicketById(ticketId);
+      const ticket = await supportService.getTicketById(ticketId);
       if (!ticket) {
         return res.status(404).json({
           success: false,
@@ -250,7 +225,7 @@ class SupportController {
         is_internal,
       };
 
-      const newMessage = await this.supportService.addMessage(messageData);
+      const newMessage = await supportService.addMessage(messageData);
 
       res.status(201).json({
         success: true,
@@ -263,15 +238,15 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get ticket messages
-  async getTicketMessages(req, res) {
+  getTicketMessages: async (req, res) => {
     try {
       const { ticketId } = req.params;
 
       // Check if ticket exists and user has access
-      const ticket = await this.supportService.getTicketById(ticketId);
+      const ticket = await supportService.getTicketById(ticketId);
       if (!ticket) {
         return res.status(404).json({
           success: false,
@@ -286,7 +261,7 @@ class SupportController {
         });
       }
 
-      const messages = await this.supportService.getTicketMessages(ticketId);
+      const messages = await supportService.getTicketMessages(ticketId);
 
       res.json({
         success: true,
@@ -298,17 +273,17 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get FAQs
-  async getFAQs(req, res) {
+  getFAQs: async (req, res) => {
     try {
       const { category } = req.query;
 
       const filters = {};
       if (category) filters.category = category;
 
-      const faqs = await this.supportService.getFAQs(filters);
+      const faqs = await supportService.getFAQs(filters);
 
       res.json({
         success: true,
@@ -320,20 +295,11 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Create FAQ (admin)
-  async createFAQ(req, res) {
+  createFAQ: async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
       const { question, answer, category, order } = req.body;
 
       const faqData = {
@@ -344,7 +310,7 @@ class SupportController {
         created_by: req.user.id,
       };
 
-      const faq = await this.supportService.createFAQ(faqData);
+      const faq = await supportService.createFAQ(faqData);
 
       res.status(201).json({
         success: true,
@@ -357,24 +323,15 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Update FAQ (admin)
-  async updateFAQ(req, res) {
+  updateFAQ: async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
       const { faqId } = req.params;
       const updateData = req.body;
 
-      const faq = await this.supportService.updateFAQ(faqId, updateData);
+      const faq = await supportService.updateFAQ(faqId, updateData);
 
       res.json({
         success: true,
@@ -387,14 +344,14 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Delete FAQ (admin)
-  async deleteFAQ(req, res) {
+  deleteFAQ: async (req, res) => {
     try {
       const { faqId } = req.params;
 
-      const result = await this.supportService.deleteFAQ(faqId);
+      const result = await supportService.deleteFAQ(faqId);
 
       res.json({
         success: true,
@@ -406,12 +363,12 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get support statistics
-  async getStats(req, res) {
+  getStats: async (req, res) => {
     try {
-      const stats = await this.supportService.getSupportStats(req.user.id, req.user.role);
+      const stats = await supportService.getSupportStats(req.user.id, req.user.role);
 
       res.json({
         success: true,
@@ -423,17 +380,17 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get case support tickets
-  async getCaseTickets(req, res) {
+  getCaseTickets: async (req, res) => {
     try {
       const { caseId } = req.params;
 
       // Check if user has access to the case
       // You might want to add case access validation here
 
-      const tickets = await this.supportService.getCaseSupportTickets(caseId);
+      const tickets = await supportService.getCaseSupportTickets(caseId);
 
       res.json({
         success: true,
@@ -445,10 +402,10 @@ class SupportController {
         message: error.message,
       });
     }
-  }
+  },
 
   // Get user support history
-  async getUserSupportHistory(req, res) {
+  getUserSupportHistory: async (req, res) => {
     try {
       const { userId } = req.params;
 
@@ -460,7 +417,7 @@ class SupportController {
         });
       }
 
-      const history = await this.supportService.getUserSupportHistory(userId);
+      const history = await supportService.getUserSupportHistory(userId);
 
       res.json({
         success: true,
@@ -472,7 +429,5 @@ class SupportController {
         message: error.message,
       });
     }
-  }
-}
-
-module.exports = SupportController;
+  },
+};

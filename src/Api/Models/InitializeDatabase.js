@@ -11,6 +11,8 @@ const {
   SupportTicket,
   TicketMessage,
   TicketAttachment,
+  Feedback,
+  FAQ,
 } = require('./Association');
 
 module.exports = {
@@ -33,6 +35,8 @@ module.exports = {
         TicketMessage.sync({ alter: false }),
         TicketAttachment.sync({ alter: false }),
         FAQ.sync({ alter: false }),
+
+        Feedback.sync({ alter: false }),
       ]);
     } catch (error) {
       console.error('Error syncing database:', error);

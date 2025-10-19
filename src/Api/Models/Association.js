@@ -7,6 +7,7 @@ const Contact = require('./Contacts');
 const Payment = require('./Payment');
 const UserDocument = require('./UserDocument');
 const { SupportTicket, TicketMessage, TicketAttachment, FAQ } = require('./SupportCenter');
+const Feedback = require('./Feedback');
 
 // One client can have many cases
 User.hasMany(Cases, { foreignKey: 'clientId', as: 'cases' });
@@ -143,6 +144,11 @@ SupportTicket.beforeCreate(async ticket => {
   ticket.ticket_number = `TKT-${timestamp}-${random}`;
 });
 
+Feedback.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user',
+});
+
 module.exports = {
   User,
   Organization,
@@ -158,4 +164,6 @@ module.exports = {
   TicketMessage,
   TicketAttachment,
   FAQ,
+
+  Feedback,
 };

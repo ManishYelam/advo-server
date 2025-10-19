@@ -1,29 +1,26 @@
 // services/supportService.js
 const { Op } = require('sequelize');
+const { SupportTicket, User, Cases, TicketMessage, TicketAttachment, FAQ, sequelize } = require('../Models/Association');
 
-class SupportService {
-  constructor(models) {
-    this.models = models;
-  }
-
+module.exports = {
   // Ticket Methods
-  async createTicket(ticketData) {
+  createTicket: async ticketData => {
     try {
-      const ticket = await this.models.SupportTicket.create(ticketData);
-      return await this.models.SupportTicket.findByPk(ticket.support_ticket_id, {
+      const ticket = await SupportTicket.create(ticketData);
+      return await SupportTicket.findByPk(ticket.support_ticket_id, {
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email', 'phone_number'],
           },
           {
-            model: this.models.User,
+            model: User,
             as: 'assigned_agent',
             attributes: ['id', 'full_name', 'email'],
           },
           {
-            model: this.models.Cases,
+            model: Cases,
             as: 'related_case',
             attributes: ['id', 'case_number', 'title'],
           },
@@ -32,9 +29,9 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to create ticket: ${error.message}`);
     }
-  }
+  },
 
-  async getTickets(filters = {}, page = 1, limit = 10) {
+  getTickets: async (filters = {}, page = 1, limit = 10) => {
     try {
       const whereClause = {};
 
@@ -55,21 +52,21 @@ class SupportService {
 
       const offset = (page - 1) * limit;
 
-      const { count, rows } = await this.models.SupportTicket.findAndCountAll({
+      const { count, rows } = await SupportTicket.findAndCountAll({
         where: whereClause,
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email', 'phone_number'],
           },
           {
-            model: this.models.User,
+            model: User,
             as: 'assigned_agent',
             attributes: ['id', 'full_name', 'email'],
           },
           {
-            model: this.models.Cases,
+            model: Cases,
             as: 'related_case',
             attributes: ['id', 'case_number', 'title'],
           },
@@ -88,38 +85,38 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch tickets: ${error.message}`);
     }
-  }
+  },
 
-  async getTicketById(ticketId) {
+  getTicketById: async ticketId => {
     try {
-      return await this.models.SupportTicket.findByPk(ticketId, {
+      return await SupportTicket.findByPk(ticketId, {
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email', 'phone_number', 'role'],
           },
           {
-            model: this.models.User,
+            model: User,
             as: 'assigned_agent',
             attributes: ['id', 'full_name', 'email', 'role'],
           },
           {
-            model: this.models.Cases,
+            model: Cases,
             as: 'related_case',
             attributes: ['id', 'case_number', 'title', 'status'],
           },
           {
-            model: this.models.TicketMessage,
+            model: TicketMessage,
             as: 'messages',
             include: [
               {
-                model: this.models.User,
+                model: User,
                 as: 'user',
                 attributes: ['id', 'full_name', 'email', 'role'],
               },
               {
-                model: this.models.TicketAttachment,
+                model: TicketAttachment,
                 as: 'attachments',
                 attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
               },
@@ -127,7 +124,7 @@ class SupportService {
             order: [['created_at', 'ASC']],
           },
           {
-            model: this.models.TicketAttachment,
+            model: TicketAttachment,
             as: 'ticket_attachments',
             attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
           },
@@ -136,11 +133,11 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch ticket: ${error.message}`);
     }
-  }
+  },
 
-  async updateTicket(ticketId, updateData) {
+  updateTicket: async (ticketId, updateData) => {
     try {
-      const ticket = await this.models.SupportTicket.findByPk(ticketId);
+      const ticket = await SupportTicket.findByPk(ticketId);
       if (!ticket) {
         throw new Error('Ticket not found');
       }
@@ -155,11 +152,11 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to update ticket: ${error.message}`);
     }
-  }
+  },
 
-  async deleteTicket(ticketId) {
+  deleteTicket: async ticketId => {
     try {
-      const ticket = await this.models.SupportTicket.findByPk(ticketId);
+      const ticket = await SupportTicket.findByPk(ticketId);
       if (!ticket) {
         throw new Error('Ticket not found');
       }
@@ -169,21 +166,21 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to delete ticket: ${error.message}`);
     }
-  }
+  },
 
   // Message Methods
-  async addMessage(messageData) {
+  addMessage: async messageData => {
     try {
-      const message = await this.models.TicketMessage.create(messageData);
-      return await this.models.TicketMessage.findByPk(message.ticket_message_id, {
+      const message = await TicketMessage.create(messageData);
+      return await TicketMessage.findByPk(message.ticket_message_id, {
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email', 'role'],
           },
           {
-            model: this.models.TicketAttachment,
+            model: TicketAttachment,
             as: 'attachments',
             attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
           },
@@ -192,20 +189,20 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to add message: ${error.message}`);
     }
-  }
+  },
 
-  async getTicketMessages(ticketId) {
+  getTicketMessages: async ticketId => {
     try {
-      return await this.models.TicketMessage.findAll({
+      return await TicketMessage.findAll({
         where: { ticket_id: ticketId },
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email', 'role'],
           },
           {
-            model: this.models.TicketAttachment,
+            model: TicketAttachment,
             as: 'attachments',
             attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
           },
@@ -215,20 +212,20 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch messages: ${error.message}`);
     }
-  }
+  },
 
-  async updateMessage(messageId, updateData) {
+  updateMessage: async (messageId, updateData) => {
     try {
-      const message = await this.models.TicketMessage.findByPk(messageId);
+      const message = await TicketMessage.findByPk(messageId);
       if (!message) {
         throw new Error('Message not found');
       }
 
       await message.update(updateData);
-      return await this.models.TicketMessage.findByPk(messageId, {
+      return await TicketMessage.findByPk(messageId, {
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email', 'role'],
           },
@@ -237,11 +234,11 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to update message: ${error.message}`);
     }
-  }
+  },
 
-  async deleteMessage(messageId) {
+  deleteMessage: async messageId => {
     try {
-      const message = await this.models.TicketMessage.findByPk(messageId);
+      const message = await TicketMessage.findByPk(messageId);
       if (!message) {
         throw new Error('Message not found');
       }
@@ -251,10 +248,10 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to delete message: ${error.message}`);
     }
-  }
+  },
 
   // FAQ Methods
-  async getFAQs(filters = {}) {
+  getFAQs: async (filters = {}) => {
     try {
       const whereClause = { is_active: true };
 
@@ -262,11 +259,11 @@ class SupportService {
         whereClause.category = filters.category;
       }
 
-      return await this.models.FAQ.findAll({
+      return await FAQ.findAll({
         where: whereClause,
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'author',
             attributes: ['id', 'full_name'],
           },
@@ -279,15 +276,15 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch FAQs: ${error.message}`);
     }
-  }
+  },
 
-  async createFAQ(faqData) {
+  createFAQ: async faqData => {
     try {
-      const faq = await this.models.FAQ.create(faqData);
-      return await this.models.FAQ.findByPk(faq.faq_id, {
+      const faq = await FAQ.create(faqData);
+      return await FAQ.findByPk(faq.faq_id, {
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'author',
             attributes: ['id', 'full_name'],
           },
@@ -296,20 +293,20 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to create FAQ: ${error.message}`);
     }
-  }
+  },
 
-  async updateFAQ(faqId, updateData) {
+  updateFAQ: async (faqId, updateData) => {
     try {
-      const faq = await this.models.FAQ.findByPk(faqId);
+      const faq = await FAQ.findByPk(faqId);
       if (!faq) {
         throw new Error('FAQ not found');
       }
 
       await faq.update(updateData);
-      return await this.models.FAQ.findByPk(faqId, {
+      return await FAQ.findByPk(faqId, {
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'author',
             attributes: ['id', 'full_name'],
           },
@@ -318,11 +315,11 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to update FAQ: ${error.message}`);
     }
-  }
+  },
 
-  async deleteFAQ(faqId) {
+  deleteFAQ: async faqId => {
     try {
-      const faq = await this.models.FAQ.findByPk(faqId);
+      const faq = await FAQ.findByPk(faqId);
       if (!faq) {
         throw new Error('FAQ not found');
       }
@@ -332,10 +329,10 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to delete FAQ: ${error.message}`);
     }
-  }
+  },
 
   // Statistics
-  async getSupportStats(userId = null, userRole = null) {
+  getSupportStats: async (userId = null, userRole = null) => {
     try {
       const whereClause = {};
 
@@ -344,25 +341,25 @@ class SupportService {
         whereClause.user_id = userId;
       }
 
-      const totalTickets = await this.models.SupportTicket.count({ where: whereClause });
-      const openTickets = await this.models.SupportTicket.count({
+      const totalTickets = await SupportTicket.count({ where: whereClause });
+      const openTickets = await SupportTicket.count({
         where: { ...whereClause, status: 'open' },
       });
-      const inProgressTickets = await this.models.SupportTicket.count({
+      const inProgressTickets = await SupportTicket.count({
         where: { ...whereClause, status: 'in_progress' },
       });
-      const resolvedTickets = await this.models.SupportTicket.count({
+      const resolvedTickets = await SupportTicket.count({
         where: { ...whereClause, status: 'resolved' },
       });
 
-      const ticketsByCategory = await this.models.SupportTicket.findAll({
-        attributes: ['category', [this.models.sequelize.fn('COUNT', this.models.sequelize.col('support_ticket_id')), 'count']],
+      const ticketsByCategory = await SupportTicket.findAll({
+        attributes: ['category', [sequelize.fn('COUNT', sequelize.col('support_ticket_id')), 'count']],
         where: whereClause,
         group: ['category'],
       });
 
-      const ticketsByPriority = await this.models.SupportTicket.findAll({
-        attributes: ['priority', [this.models.sequelize.fn('COUNT', this.models.sequelize.col('support_ticket_id')), 'count']],
+      const ticketsByPriority = await SupportTicket.findAll({
+        attributes: ['priority', [sequelize.fn('COUNT', sequelize.col('support_ticket_id')), 'count']],
         where: whereClause,
         group: ['priority'],
       });
@@ -378,21 +375,21 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch support stats: ${error.message}`);
     }
-  }
+  },
 
   // Case-related support methods
-  async getCaseSupportTickets(caseId) {
+  getCaseSupportTickets: async caseId => {
     try {
-      return await this.models.SupportTicket.findAll({
+      return await SupportTicket.findAll({
         where: { case_id: caseId },
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'user',
             attributes: ['id', 'full_name', 'email'],
           },
           {
-            model: this.models.TicketMessage,
+            model: TicketMessage,
             as: 'messages',
             attributes: ['ticket_message_id', 'message', 'created_at'],
             limit: 1,
@@ -404,26 +401,26 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch case tickets: ${error.message}`);
     }
-  }
+  },
 
   // User-related support methods
-  async getUserSupportHistory(userId) {
+  getUserSupportHistory: async userId => {
     try {
-      return await this.models.SupportTicket.findAll({
+      return await SupportTicket.findAll({
         where: { user_id: userId },
         include: [
           {
-            model: this.models.User,
+            model: User,
             as: 'assigned_agent',
             attributes: ['id', 'full_name', 'email'],
           },
           {
-            model: this.models.Cases,
+            model: Cases,
             as: 'related_case',
             attributes: ['id', 'case_number', 'title'],
           },
           {
-            model: this.models.TicketMessage,
+            model: TicketMessage,
             as: 'messages',
             attributes: ['ticket_message_id'],
             limit: 1,
@@ -434,7 +431,5 @@ class SupportService {
     } catch (error) {
       throw new Error(`Failed to fetch user support history: ${error.message}`);
     }
-  }
-}
-
-module.exports = SupportService;
+  },
+};

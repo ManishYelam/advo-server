@@ -154,6 +154,14 @@ const Cases = sequelize.MAIN_DB_NAME.define(
         key: 'id',
       },
     },
+    advocate_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: User,
+        key: 'id',
+      },
+    },
     verified: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
