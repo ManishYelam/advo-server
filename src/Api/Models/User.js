@@ -88,6 +88,10 @@ const userAttribute = {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  last_application_pdf: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
   expiresAt: {
     type: DataTypes.DATE,
     allowNull: true,

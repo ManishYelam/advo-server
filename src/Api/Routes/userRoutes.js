@@ -18,7 +18,7 @@ userRouter
   .put('/:id', userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
   .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
-  .post('/save-application', uploadPublicMiddleware, userController.saveApplication);
+  .post('/save-application', userController.saveApplication);
 
 // Export both routers properly
 module.exports = {
