@@ -175,7 +175,7 @@ const AuthService = {
       const resetPasswordLink = `http://localhost:5000/verify-reset-password?userId=${user.id}&token=${otp}`;
 
       // Send OTP email
-      const userName = `${user.first_name} ${user.last_name}`;
+      const userName = `${user.full_name}`;
       await sendResetPasswordCodeEmail(user.id, userName, user.email, resetVerificationLink, resetPasswordLink, otp);
 
       return { message: 'An OTP has been sent to your email. Please verify to proceed with password reset.' };

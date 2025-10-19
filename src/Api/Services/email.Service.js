@@ -9,7 +9,7 @@ const {
 const { User } = require('../Models/Association');
 
 module.exports = {
-   sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link, pdfBuffer) => {
+  sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link, pdfBuffer) => {
     const user_Email = userEmail;
     const subject = '🚀 Your Exclusive Service Register Here!';
     const template_Name = 'welcomeTemplate';
@@ -72,6 +72,7 @@ module.exports = {
     const template_Data = {
       userId: userId,
       userName: userName,
+      resetPasswordUrl: "http://localhost:5173/reset-password"
     };
     sendMail(user_Email, subject, template_Name, template_Data);
   },
