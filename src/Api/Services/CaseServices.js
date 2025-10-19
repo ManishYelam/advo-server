@@ -14,20 +14,20 @@ const CaseService = {
   },
 
   // Get all cases for a client (pagination can be added)
-  getAllCases: async ({ page = 1, limit = 10, search = "", searchFields = [], filters = {} }) => {
+  getAllCases: async ({ page = 1, limit = 10, search = '', searchFields = [], filters = {} }) => {
     try {
       const offset = (page - 1) * limit;
 
       const whereConditions = {};
       if (filters.status) whereConditions.status = filters.status;
       if (filters.deposit_type) whereConditions.deposit_type = filters.deposit_type;
-      if (filters.verified) whereConditions.verified = filters.verified === "true" || filters.verified === true;
+      if (filters.verified) whereConditions.verified = filters.verified === 'true' || filters.verified === true;
       if (filters.client_id) whereConditions.client_id = filters.client_id;
       if (filters.deposit_duration_years) whereConditions.deposit_duration_years = filters.deposit_duration_years;
 
       let searchConditions = [];
       if (search && searchFields.length) {
-        searchConditions = searchFields.map((field) => ({
+        searchConditions = searchFields.map(field => ({
           [field]: { [Op.like]: `%${search}%` },
         }));
       }
@@ -39,60 +39,60 @@ const CaseService = {
         where: finalWhere,
         offset,
         limit: parseInt(limit),
-        order: [["createdAt", "DESC"]],
+        order: [['createdAt', 'DESC']],
         attributes: [
-          "id",
-          "client_id",
-          "status",
-          "saving_account_start_date",
-          "deposit_type",
-          "deposit_duration_years",
-          "fixed_deposit_total_amount",
-          "interest_rate_fd",
-          "saving_account_total_amount",
-          "interest_rate_saving",
-          "recurring_deposit_total_amount",
-          "interest_rate_recurring",
-          "dnyanrudha_investment_total_amount",
-          "dynadhara_rate",
-          "verified",
-          "documents",
-          "createdAt",
-          "updatedAt",
+          'id',
+          'client_id',
+          'status',
+          'saving_account_start_date',
+          'deposit_type',
+          'deposit_duration_years',
+          'fixed_deposit_total_amount',
+          'interest_rate_fd',
+          'saving_account_total_amount',
+          'interest_rate_saving',
+          'recurring_deposit_total_amount',
+          'interest_rate_recurring',
+          'dnyanrudha_investment_total_amount',
+          'dynadhara_rate',
+          'verified',
+          'documents',
+          'createdAt',
+          'updatedAt',
         ],
         include: [
           {
             model: Payment,
-            as: "payments",
+            as: 'payments',
             attributes: [
-              "id",
-              "amount",
-              "currency",
-              "status",
-              "method",
-              "receipt",
-              "payment_id",
-              "order_id",
-              "amount_due",
-              "client_id",
-              "case_id",
-              "notes",
-              "createdAt",
-              "updatedAt",
+              'id',
+              'amount',
+              'currency',
+              'status',
+              'method',
+              'receipt',
+              'payment_id',
+              'order_id',
+              'amount_due',
+              'client_id',
+              'case_id',
+              'notes',
+              'createdAt',
+              'updatedAt',
             ],
           },
         ],
       });
 
       return {
-        message: "✅ Cases fetched successfully.",
+        message: '✅ Cases fetched successfully.',
         totalRecords: count,
         totalPages: Math.ceil(count / limit),
         currentPage: parseInt(page),
         data: rows,
       };
     } catch (error) {
-      console.error("❌ Error in caseService.getAllCases:", error.message);
+      console.error('❌ Error in caseService.getAllCases:', error.message);
       throw new Error(error.message);
     }
   },

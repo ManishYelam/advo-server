@@ -157,8 +157,8 @@ const Cases = sequelize.MAIN_DB_NAME.define(
     verified: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: false
-    }
+      defaultValue: false,
+    },
   },
   {
     tableName: 'tbl_cases',

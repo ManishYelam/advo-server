@@ -58,7 +58,7 @@ module.exports = {
     }
   },
 
-  resendVerification: async (userId) => {
+  resendVerification: async userId => {
     try {
       const user = await User.findByPk(userId);
       if (!user) throw new Error('User not found');
@@ -176,9 +176,7 @@ module.exports = {
         additional_notes: data.additional_notes ?? user.additional_notes,
         status: data.status ?? user.status,
         role_id: data.role_id ?? user.role_id,
-        user_metadata: data.user_metadata
-          ? { ...user.user_metadata, ...data.user_metadata }
-          : user.user_metadata,
+        user_metadata: data.user_metadata ? { ...user.user_metadata, ...data.user_metadata } : user.user_metadata,
       };
 
       // Check edit_flag to determine if we should update password
@@ -207,7 +205,7 @@ module.exports = {
 
       return {
         message: 'User updated successfully',
-        user: userResponse
+        user: userResponse,
       };
     } catch (error) {
       await transaction.rollback();
@@ -239,16 +237,15 @@ module.exports = {
         const hashedPassword = user_data.password ? await hashPassword(user_data.password) : user.password;
         await user.update({ ...user_data, password: hashedPassword }, { transaction: t });
       } else {
-        if (user_data.password) { user_data.password = await hashPassword(user_data.password); }
+        if (user_data.password) {
+          user_data.password = await hashPassword(user_data.password);
+        }
         user = await User.create(user_data, { transaction: t });
       }
 
       const caseData = await Cases.create({ ...case_data, client_id: user.id }, { transaction: t });
 
-      const paymentData = await Payment.create(
-        { ...payment_data, client_id: user.id, case_id: caseData.id },
-        { transaction: t }
-      );
+      const paymentData = await Payment.create({ ...payment_data, client_id: user.id, case_id: caseData.id }, { transaction: t });
 
       await t.commit();
 
@@ -256,7 +253,7 @@ module.exports = {
     } catch (error) {
       console.error(error.message);
       await t.rollback();
-      return { success: false, error: "Transaction failed, all changes rolled back." };
+      return { success: false, error: 'Transaction failed, all changes rolled back.' };
     }
   },
 
@@ -268,7 +265,7 @@ module.exports = {
         fileName = null,
         fileSize = 0,
         description = 'Application Form PDF',
-        updateUserRecord = true
+        updateUserRecord = true,
       } = options;
 
       // ✅ Step 1: Find the case
@@ -279,13 +276,13 @@ module.exports = {
 
       const caseRecord = await Cases.findOne({
         where: whereClause,
-        order: [['createdAt', 'DESC']]
+        order: [['createdAt', 'DESC']],
       });
 
       if (!caseRecord) {
         return {
           success: false,
-          error: "No case found for this user. Please save application first."
+          error: 'No case found for this user. Please save application first.',
         };
       }
 
@@ -295,16 +292,18 @@ module.exports = {
       if (caseRecord.documents) {
         if (Array.isArray(caseRecord.documents)) {
           // If it's already an array, extract file paths from objects or use strings directly
-          currentFilePaths = caseRecord.documents.map(doc => {
-            if (typeof doc === 'string') {
-              return doc; // Already a file path string
-            } else if (doc && doc.url) {
-              return doc.url; // Extract url from object
-            } else if (doc && doc.path) {
-              return doc.path; // Extract path from object
-            }
-            return null;
-          }).filter(Boolean); // Remove null values
+          currentFilePaths = caseRecord.documents
+            .map(doc => {
+              if (typeof doc === 'string') {
+                return doc; // Already a file path string
+              } else if (doc && doc.url) {
+                return doc.url; // Extract url from object
+              } else if (doc && doc.path) {
+                return doc.path; // Extract path from object
+              }
+              return null;
+            })
+            .filter(Boolean); // Remove null values
         } else if (typeof caseRecord.documents === 'object' && caseRecord.documents.url) {
           // If it's a single object with url
           currentFilePaths = [caseRecord.documents.url];
@@ -317,7 +316,7 @@ module.exports = {
 
       await caseRecord.update({
         documents: updatedFilePaths,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
       // ✅ Step 3: Create UserDocument with full details
@@ -335,8 +334,8 @@ module.exports = {
         metadata: {
           originalName: fileName,
           uploadedAt: new Date().toISOString(),
-          documentVersion: '1.0'
-        }
+          documentVersion: '1.0',
+        },
       });
 
       // ✅ Step 4: Optionally update User table
@@ -344,7 +343,7 @@ module.exports = {
         await User.update(
           {
             last_application_pdf: relativeFilePath, // Store relative path in User
-            updatedAt: new Date()
+            updatedAt: new Date(),
           },
           { where: { id: userId } }
         );
@@ -359,13 +358,11 @@ module.exports = {
         message: 'File path stored successfully',
         caseId: caseRecord.id,
         userDocumentId: userDocument.id,
-        documentsCount: updatedFilePaths.length
+        documentsCount: updatedFilePaths.length,
       };
-
     } catch (error) {
       console.error('❌ Error updating application file path:', error);
       return { success: false, error: error.message };
     }
-  }
-
-}
+  },
+};

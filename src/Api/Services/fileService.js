@@ -17,7 +17,7 @@ class FileService {
         fs.mkdirSync(this.UPLOAD_DIR, { recursive: true });
         console.log(`✅ Created upload directory: ${this.UPLOAD_DIR}`);
       }
-      
+
       // Create necessary subdirectories
       const subDirs = ['temp', 'backups', 'logs'];
       subDirs.forEach(dir => {
@@ -26,7 +26,6 @@ class FileService {
           fs.mkdirSync(dirPath, { recursive: true });
         }
       });
-      
     } catch (error) {
       console.error('❌ Failed to initialize upload directory:', error);
     }
@@ -58,36 +57,35 @@ class FileService {
     try {
       const userDir = this.ensureUserDir(userId);
       const filePath = path.join(userDir, filename);
-      
+
       // Validate file size
       if (fileBuffer.length > this.MAX_FILE_SIZE) {
         throw new Error(`File size exceeds maximum allowed size of ${this.MAX_FILE_SIZE} bytes`);
       }
-      
+
       // Validate file type
       const fileExt = path.extname(filename).toLowerCase().replace('.', '');
       if (!this.ALLOWED_FILE_TYPES.includes(fileExt)) {
         throw new Error(`File type ${fileExt} is not allowed. Allowed types: ${this.ALLOWED_FILE_TYPES.join(', ')}`);
       }
-      
+
       // Write file
       fs.writeFileSync(filePath, fileBuffer);
-      
+
       console.log(`✅ File saved: ${filePath} (${fileBuffer.length} bytes)`);
-      
+
       return {
         success: true,
         filePath: filePath,
         fileSize: fileBuffer.length,
         filename: filename,
-        userDir: userDir
+        userDir: userDir,
       };
-      
     } catch (error) {
       console.error(`❌ Failed to save file for user ${userId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -97,16 +95,15 @@ class FileService {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = customFilename || `application_${timestamp}.pdf`;
-      
+
       return this.saveUserFile(userId, pdfBuffer, filename, {
-        validateType: false // PDF is always allowed
+        validateType: false, // PDF is always allowed
       });
-      
     } catch (error) {
       console.error(`❌ Failed to save application PDF for user ${userId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -115,30 +112,30 @@ class FileService {
   getUserFiles(userId, fileType = null) {
     try {
       const userDir = this.getUserDir(userId);
-      
+
       if (!fs.existsSync(userDir)) {
         return [];
       }
-      
-      const files = fs.readdirSync(userDir)
+
+      const files = fs
+        .readdirSync(userDir)
         .map(filename => {
           const filePath = path.join(userDir, filename);
           const stats = fs.statSync(filePath);
-          
+
           return {
             filename,
             filePath,
             size: stats.size,
             created: stats.birthtime,
             modified: stats.mtime,
-            type: path.extname(filename).toLowerCase().replace('.', '')
+            type: path.extname(filename).toLowerCase().replace('.', ''),
           };
         })
         .filter(file => !fileType || file.type === fileType)
         .sort((a, b) => new Date(b.created) - new Date(a.created));
-      
+
       return files;
-      
     } catch (error) {
       console.error(`❌ Failed to get files for user ${userId}:`, error);
       return [];
@@ -150,27 +147,26 @@ class FileService {
     try {
       const userDir = this.getUserDir(userId);
       const filePath = path.join(userDir, filename);
-      
+
       if (!fs.existsSync(filePath)) {
         return {
           success: false,
-          error: 'File not found'
+          error: 'File not found',
         };
       }
-      
+
       fs.unlinkSync(filePath);
       console.log(`✅ File deleted: ${filePath}`);
-      
+
       return {
         success: true,
-        message: 'File deleted successfully'
+        message: 'File deleted successfully',
       };
-      
     } catch (error) {
       console.error(`❌ Failed to delete file ${filename} for user ${userId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -179,17 +175,17 @@ class FileService {
   cleanupUserDir(userId) {
     try {
       const userDir = this.getUserDir(userId);
-      
+
       if (!fs.existsSync(userDir)) {
         return {
           success: true,
-          message: 'User directory does not exist'
+          message: 'User directory does not exist',
         };
       }
-      
+
       const files = fs.readdirSync(userDir);
       let deletedCount = 0;
-      
+
       files.forEach(filename => {
         try {
           const filePath = path.join(userDir, filename);
@@ -199,20 +195,19 @@ class FileService {
           console.error(`❌ Failed to delete ${filename}:`, error);
         }
       });
-      
+
       console.log(`✅ Cleaned up user directory: ${userDir} (${deletedCount} files deleted)`);
-      
+
       return {
         success: true,
         deletedCount: deletedCount,
-        message: `Deleted ${deletedCount} files`
+        message: `Deleted ${deletedCount} files`,
       };
-      
     } catch (error) {
       console.error(`❌ Failed to cleanup user directory for ${userId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -220,10 +215,10 @@ class FileService {
   // Get directory statistics
   getStats() {
     try {
-      const getDirSize = (dirPath) => {
+      const getDirSize = dirPath => {
         let totalSize = 0;
-        
-        const calculateSize = (currentPath) => {
+
+        const calculateSize = currentPath => {
           const stats = fs.statSync(currentPath);
           if (stats.isDirectory()) {
             const files = fs.readdirSync(currentPath);
@@ -234,32 +229,31 @@ class FileService {
             totalSize += stats.size;
           }
         };
-        
+
         if (fs.existsSync(dirPath)) {
           calculateSize(dirPath);
         }
-        
+
         return totalSize;
       };
-      
+
       const totalSize = getDirSize(this.UPLOAD_DIR);
-      const userDirs = fs.existsSync(path.join(this.UPLOAD_DIR, 'users')) 
-        ? fs.readdirSync(path.join(this.UPLOAD_DIR, 'users')).length 
+      const userDirs = fs.existsSync(path.join(this.UPLOAD_DIR, 'users'))
+        ? fs.readdirSync(path.join(this.UPLOAD_DIR, 'users')).length
         : 0;
-      
+
       return {
         uploadDir: this.UPLOAD_DIR,
         totalSize: totalSize,
         totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
         userCount: userDirs,
         maxFileSize: this.MAX_FILE_SIZE,
-        allowedTypes: this.ALLOWED_FILE_TYPES
+        allowedTypes: this.ALLOWED_FILE_TYPES,
       };
-      
     } catch (error) {
       console.error('❌ Failed to get directory stats:', error);
       return {
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -269,39 +263,38 @@ class FileService {
     try {
       const userDir = this.getUserDir(userId);
       const backupDir = path.join(this.UPLOAD_DIR, 'backups', userId.toString());
-      
+
       if (!fs.existsSync(userDir)) {
         return {
           success: false,
-          error: 'User directory does not exist'
+          error: 'User directory does not exist',
         };
       }
-      
+
       // Ensure backup directory exists
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
       }
-      
+
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupPath = path.join(backupDir, `backup_${timestamp}.zip`);
-      
+
       // In a real implementation, you might want to use archiver to create a zip
       // For now, we'll just copy the directory
       this.copyDirSync(userDir, backupPath);
-      
+
       console.log(`✅ User files backed up: ${backupPath}`);
-      
+
       return {
         success: true,
         backupPath: backupPath,
-        message: 'Backup created successfully'
+        message: 'Backup created successfully',
       };
-      
     } catch (error) {
       console.error(`❌ Failed to backup user files for ${userId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

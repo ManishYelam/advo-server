@@ -14,12 +14,12 @@ class SupportController {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors.array(),
         });
       }
 
       const { subject, category, priority, description, case_id, attachments } = req.body;
-      
+
       const ticketData = {
         user_id: req.user.id,
         subject,
@@ -27,7 +27,7 @@ class SupportController {
         priority,
         description,
         case_id,
-        attachments
+        attachments,
       };
 
       const ticket = await this.supportService.createTicket(ticketData);
@@ -35,12 +35,12 @@ class SupportController {
       res.status(201).json({
         success: true,
         message: 'Support ticket created successfully',
-        data: { ticket }
+        data: { ticket },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -49,7 +49,7 @@ class SupportController {
   async getUserTickets(req, res) {
     try {
       const { page = 1, limit = 10, status, category, search } = req.query;
-      
+
       const filters = { user_id: req.user.id };
       if (status) filters.status = status;
       if (category) filters.category = category;
@@ -59,12 +59,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -73,7 +73,7 @@ class SupportController {
   async getAllTickets(req, res) {
     try {
       const { page = 1, limit = 10, status, category, priority, assigned_to, case_id, search } = req.query;
-      
+
       const filters = {};
       if (status) filters.status = status;
       if (category) filters.category = category;
@@ -91,12 +91,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -105,34 +105,32 @@ class SupportController {
   async getTicket(req, res) {
     try {
       const { ticketId } = req.params;
-      
+
       const ticket = await this.supportService.getTicketById(ticketId);
-      
+
       if (!ticket) {
         return res.status(404).json({
           success: false,
-          message: 'Ticket not found'
+          message: 'Ticket not found',
         });
       }
 
       // Check if user owns the ticket or is admin/advocate
-      if (ticket.user_id !== req.user.id && 
-          !['admin', 'advocate'].includes(req.user.role) &&
-          ticket.assigned_to !== req.user.id) {
+      if (ticket.user_id !== req.user.id && !['admin', 'advocate'].includes(req.user.role) && ticket.assigned_to !== req.user.id) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: 'Access denied',
         });
       }
 
       res.json({
         success: true,
-        data: { ticket }
+        data: { ticket },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -145,7 +143,7 @@ class SupportController {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors.array(),
         });
       }
 
@@ -157,7 +155,7 @@ class SupportController {
       if (!existingTicket) {
         return res.status(404).json({
           success: false,
-          message: 'Ticket not found'
+          message: 'Ticket not found',
         });
       }
 
@@ -169,12 +167,14 @@ class SupportController {
       }
 
       // Only ticket owner or admin/advocate can update
-      if (existingTicket.user_id !== req.user.id && 
-          !['admin', 'advocate'].includes(req.user.role) &&
-          existingTicket.assigned_to !== req.user.id) {
+      if (
+        existingTicket.user_id !== req.user.id &&
+        !['admin', 'advocate'].includes(req.user.role) &&
+        existingTicket.assigned_to !== req.user.id
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: 'Access denied',
         });
       }
 
@@ -183,12 +183,12 @@ class SupportController {
       res.json({
         success: true,
         message: 'Ticket updated successfully',
-        data: { ticket }
+        data: { ticket },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -202,12 +202,12 @@ class SupportController {
 
       res.json({
         success: true,
-        message: result.message
+        message: result.message,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -220,7 +220,7 @@ class SupportController {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors.array(),
         });
       }
 
@@ -232,16 +232,14 @@ class SupportController {
       if (!ticket) {
         return res.status(404).json({
           success: false,
-          message: 'Ticket not found'
+          message: 'Ticket not found',
         });
       }
 
-      if (ticket.user_id !== req.user.id && 
-          !['admin', 'advocate'].includes(req.user.role) &&
-          ticket.assigned_to !== req.user.id) {
+      if (ticket.user_id !== req.user.id && !['admin', 'advocate'].includes(req.user.role) && ticket.assigned_to !== req.user.id) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: 'Access denied',
         });
       }
 
@@ -249,7 +247,7 @@ class SupportController {
         ticket_id: parseInt(ticketId),
         user_id: req.user.id,
         message,
-        is_internal
+        is_internal,
       };
 
       const newMessage = await this.supportService.addMessage(messageData);
@@ -257,12 +255,12 @@ class SupportController {
       res.status(201).json({
         success: true,
         message: 'Message added successfully',
-        data: { message: newMessage }
+        data: { message: newMessage },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -277,16 +275,14 @@ class SupportController {
       if (!ticket) {
         return res.status(404).json({
           success: false,
-          message: 'Ticket not found'
+          message: 'Ticket not found',
         });
       }
 
-      if (ticket.user_id !== req.user.id && 
-          !['admin', 'advocate'].includes(req.user.role) &&
-          ticket.assigned_to !== req.user.id) {
+      if (ticket.user_id !== req.user.id && !['admin', 'advocate'].includes(req.user.role) && ticket.assigned_to !== req.user.id) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: 'Access denied',
         });
       }
 
@@ -294,12 +290,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: { messages }
+        data: { messages },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -308,7 +304,7 @@ class SupportController {
   async getFAQs(req, res) {
     try {
       const { category } = req.query;
-      
+
       const filters = {};
       if (category) filters.category = category;
 
@@ -316,12 +312,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: { faqs }
+        data: { faqs },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -334,18 +330,18 @@ class SupportController {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors.array(),
         });
       }
 
       const { question, answer, category, order } = req.body;
-      
+
       const faqData = {
         question,
         answer,
         category,
         order,
-        created_by: req.user.id
+        created_by: req.user.id,
       };
 
       const faq = await this.supportService.createFAQ(faqData);
@@ -353,12 +349,12 @@ class SupportController {
       res.status(201).json({
         success: true,
         message: 'FAQ created successfully',
-        data: { faq }
+        data: { faq },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -371,7 +367,7 @@ class SupportController {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors.array(),
         });
       }
 
@@ -383,12 +379,12 @@ class SupportController {
       res.json({
         success: true,
         message: 'FAQ updated successfully',
-        data: { faq }
+        data: { faq },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -402,12 +398,12 @@ class SupportController {
 
       res.json({
         success: true,
-        message: result.message
+        message: result.message,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -419,12 +415,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: { stats }
+        data: { stats },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -441,12 +437,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: { tickets }
+        data: { tickets },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -455,12 +451,12 @@ class SupportController {
   async getUserSupportHistory(req, res) {
     try {
       const { userId } = req.params;
-      
+
       // Users can only see their own history, admins/advocates can see any
       if (userId != req.user.id && !['admin', 'advocate'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: 'Access denied',
         });
       }
 
@@ -468,12 +464,12 @@ class SupportController {
 
       res.json({
         success: true,
-        data: { history }
+        data: { history },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }

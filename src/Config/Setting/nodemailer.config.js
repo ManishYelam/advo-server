@@ -270,19 +270,19 @@ module.exports = sendMail;
 //       from: `"${settings.metadata.companyName || 'Your Company'}" <${settings.metadata.emailSettings.username}>`,
 //       to: toEmails,
 //       subject: subject,
-      
+
 //       // Content
 //       html: finalHtml,
 //       text: text || (finalHtml ? finalHtml.replace(/<[^>]*>/g, '') : ''), // Auto-generate text from HTML if not provided
-      
+
 //       // Recipients
 //       cc: ccEmails,
 //       bcc: bccEmails,
 //       replyTo: replyTo || settings.metadata.emailSettings.username,
-      
+
 //       // Attachments
 //       attachments: processedAttachments,
-      
+
 //       // Headers
 //       headers: {
 //         'X-Priority': priorityMap[priority] || '3',
@@ -291,7 +291,7 @@ module.exports = sendMail;
 //         'Precedence': 'bulk',
 //         ...headers
 //       },
-      
+
 //       // Advanced options
 //       encoding: encoding,
 //       date: date,
@@ -345,7 +345,7 @@ module.exports = sendMail;
 
 //   } catch (error) {
 //     console.error('❌ Error sending email:', error);
-    
+
 //     return {
 //       success: false,
 //       message: error.message,
@@ -398,7 +398,7 @@ module.exports = sendMail;
 
 //     const settings = app_email.toJSON();
 //     const transporter = createTransporter(settings);
-    
+
 //     await transporter.verify();
 //     return { success: true, message: 'Email configuration is valid' };
 //   } catch (error) {

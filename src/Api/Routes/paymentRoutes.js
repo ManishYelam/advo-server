@@ -3,8 +3,6 @@ const { createOrderController, verifyPaymentController } = require('../controlle
 
 const paymentRouter = express.Router();
 
-paymentRouter
-    .post('/create-order', createOrderController)
-    .post('/verify-payment', verifyPaymentController);
+paymentRouter.post('/create-order', createOrderController).post('/verify-payment', verifyPaymentController);
 
 module.exports = paymentRouter;

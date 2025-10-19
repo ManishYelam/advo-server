@@ -12,30 +12,30 @@ module.exports = {
       const { email } = req.body;
       //console.log(email);
       if (!email) {
-        return res.status(400).json({ success: false, message: "Email is required" });
+        return res.status(400).json({ success: false, message: 'Email is required' });
       }
-      const user = await userService.checkExistsEmail(email)
+      const user = await userService.checkExistsEmail(email);
       if (user) {
         return res.status(200).json({
           success: true,
           exists: true,
-          message: "Email already exists",
+          message: 'Email already exists',
           user: {
             id: user.id,
             full_namename: user.name,
-            email: user.email
-          }
+            email: user.email,
+          },
         });
       } else {
         return res.status(200).json({
           success: true,
           exists: false,
-          message: "Email not found"
+          message: 'Email not found',
         });
       }
     } catch (error) {
-      console.error("Error checking email:", error);
-      res.status(500).json({ success: false, message: "Server error", error: error.message });
+      console.error('Error checking email:', error);
+      res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
   },
 
@@ -138,7 +138,6 @@ module.exports = {
   saveApplication: async (req, res) => {
     console.log(req);
 
-
     let storedFilePath = null;
 
     try {
@@ -146,25 +145,25 @@ module.exports = {
       const UPLOAD_DIR = process.env.UPLOAD_DIR;
 
       // Helper function to ensure directory exists (sync)
-      const ensureDirExists = (dirPath) => {
+      const ensureDirExists = dirPath => {
         if (!fs.existsSync(dirPath)) {
           fs.mkdirSync(dirPath, { recursive: true });
           // console.log(`✅ Created directory: ${dirPath}`);
         }
       };
 
-      const formatDate = (dateValue) => {
+      const formatDate = dateValue => {
         if (!dateValue) return null;
         const date = new Date(dateValue);
         return isNaN(date.getTime()) ? null : date.toISOString();
       };
 
-      const parseNumber = (value) => (value ? parseFloat(value) : 0);
+      const parseNumber = value => (value ? parseFloat(value) : 0);
 
       const user_data = {
         full_name: body.full_name,
         dob: formatDate(body.date_of_birth),
-        age: body.age ? parseInt(body.age, 10) : "",
+        age: body.age ? parseInt(body.age, 10) : '',
         phone_number: body.phone_number,
         email: body.email,
         gender: body.gender,
@@ -197,16 +196,14 @@ module.exports = {
         amount_due: body.order?.amount_due || 0,
         amount_paid: body.order?.amount_paid || 0,
         attempts: body.order?.attempts || 0,
-        created_at: body.order?.created_at
-          ? new Date(body.order.created_at * 1000).toISOString()
-          : null,
+        created_at: body.order?.created_at ? new Date(body.order.created_at * 1000).toISOString() : null,
         currency: body.order?.currency,
         entity: body.order?.entity,
         order_id: body.order?.id || body.orderId || body.order_id,
         notes: body.order?.notes,
         offer_id: body.order?.offer_id,
         receipt: body.order?.receipt,
-        status: body.status || body.order?.status || "Pending",
+        status: body.status || body.order?.status || 'Pending',
       };
 
       // Save application data
@@ -241,17 +238,13 @@ module.exports = {
           // console.log(`✅ PDF stored successfully: ${storedFilePath}`);
 
           // Optional: You can store the file path in your database here
-          await userService.updateApplicationFilePath(
-            saved.user.id,
-            storedFilePath,
-            {
-              applicationId: saved.case?.id || saved.application?.id, // Use saved.case.id
-              documentType: 'application_pdf',
-              fileSize: pdfBuffer.length,
-              fileName: filename, // Pass the filename
-              description: 'Application Form PDF'
-            }
-          );
+          await userService.updateApplicationFilePath(saved.user.id, storedFilePath, {
+            applicationId: saved.case?.id || saved.application?.id, // Use saved.case.id
+            documentType: 'application_pdf',
+            fileSize: pdfBuffer.length,
+            fileName: filename, // Pass the filename
+            description: 'Application Form PDF',
+          });
         } catch (storageError) {
           console.error('❌ Failed to store PDF file:', storageError);
           storedFilePath = null;
@@ -274,18 +267,17 @@ module.exports = {
       }
 
       const result = {
-        message: "✅ Application saved successfully!",
+        message: '✅ Application saved successfully!',
         data: saved,
         pdfGenerated: !!pdfBuffer,
         pdfStored: !!storedFilePath,
         storedFilePath: storedFilePath,
-        userId: saved.user?.id
+        userId: saved.user?.id,
       };
 
       return res.status(200).json(result);
-
     } catch (error) {
-      console.error("❌ Error saving application:", error);
+      console.error('❌ Error saving application:', error);
 
       // Clean up stored file if there was an error after storage (sync)
       if (storedFilePath && fs.existsSync(storedFilePath)) {
@@ -298,9 +290,9 @@ module.exports = {
       }
 
       return res.status(500).json({
-        error: "An error occurred while saving application",
-        details: error.message
+        error: 'An error occurred while saving application',
+        details: error.message,
       });
     }
-  }
-}
+  },
+};

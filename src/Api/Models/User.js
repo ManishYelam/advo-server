@@ -22,7 +22,7 @@ const userAttribute = {
   role: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    defaultValue: "client"
+    defaultValue: 'client',
   },
   date_of_birth: {
     type: DataTypes.DATEONLY,
@@ -30,7 +30,7 @@ const userAttribute = {
   },
   age: {
     type: DataTypes.INTEGER,
-    allowNull: true
+    allowNull: true,
   },
   gender: {
     type: DataTypes.STRING,

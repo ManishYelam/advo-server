@@ -26,8 +26,8 @@ module.exports = {
         {
           filename: `application_${userId}.pdf`,
           content: pdfBuffer,
-          contentType: 'application/pdf'
-        }
+          contentType: 'application/pdf',
+        },
       ];
     } else {
       console.error('❌ Invalid PDF buffer, sending email without attachment');
@@ -73,7 +73,7 @@ module.exports = {
     const template_Data = {
       userId: userId,
       userName: userName,
-      resetPasswordUrl: `${FRONTEND_URL}/reset-password`
+      resetPasswordUrl: `${FRONTEND_URL}/reset-password`,
     };
     sendMail(user_Email, subject, template_Name, template_Data);
   },

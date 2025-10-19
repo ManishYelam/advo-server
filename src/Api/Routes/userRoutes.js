@@ -8,7 +8,7 @@ const uploadPublicMiddleware = require('../Middlewares/uploadPublicMiddleware');
 const userRouter = express.Router();
 // User routes
 userRouter
-  .post('/email',  userController.checkExistsEmail)
+  .post('/email', userController.checkExistsEmail)
   .post('/', validateAsync(createUserSchema), userController.createUser)
   .post('/verify', userController.verifyCreateUser)
   .post('/resend-verification', userController.resendVerification)

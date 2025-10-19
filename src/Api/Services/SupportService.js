@@ -15,19 +15,19 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email', 'phone_number']
+            attributes: ['id', 'full_name', 'email', 'phone_number'],
           },
           {
             model: this.models.User,
             as: 'assigned_agent',
-            attributes: ['id', 'full_name', 'email']
+            attributes: ['id', 'full_name', 'email'],
           },
           {
             model: this.models.Cases,
             as: 'related_case',
-            attributes: ['id', 'case_number', 'title']
-          }
-        ]
+            attributes: ['id', 'case_number', 'title'],
+          },
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to create ticket: ${error.message}`);
@@ -37,7 +37,7 @@ class SupportService {
   async getTickets(filters = {}, page = 1, limit = 10) {
     try {
       const whereClause = {};
-      
+
       // Apply filters
       if (filters.user_id) whereClause.user_id = filters.user_id;
       if (filters.status) whereClause.status = filters.status;
@@ -49,7 +49,7 @@ class SupportService {
         whereClause[Op.or] = [
           { subject: { [Op.like]: `%${filters.search}%` } },
           { ticket_number: { [Op.like]: `%${filters.search}%` } },
-          { description: { [Op.like]: `%${filters.search}%` } }
+          { description: { [Op.like]: `%${filters.search}%` } },
         ];
       }
 
@@ -61,29 +61,29 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email', 'phone_number']
+            attributes: ['id', 'full_name', 'email', 'phone_number'],
           },
           {
             model: this.models.User,
             as: 'assigned_agent',
-            attributes: ['id', 'full_name', 'email']
+            attributes: ['id', 'full_name', 'email'],
           },
           {
             model: this.models.Cases,
             as: 'related_case',
-            attributes: ['id', 'case_number', 'title']
-          }
+            attributes: ['id', 'case_number', 'title'],
+          },
         ],
         order: [['created_at', 'DESC']],
         limit,
-        offset
+        offset,
       });
 
       return {
         tickets: rows,
         total: count,
         page,
-        total_pages: Math.ceil(count / limit)
+        total_pages: Math.ceil(count / limit),
       };
     } catch (error) {
       throw new Error(`Failed to fetch tickets: ${error.message}`);
@@ -97,17 +97,17 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email', 'phone_number', 'role']
+            attributes: ['id', 'full_name', 'email', 'phone_number', 'role'],
           },
           {
             model: this.models.User,
             as: 'assigned_agent',
-            attributes: ['id', 'full_name', 'email', 'role']
+            attributes: ['id', 'full_name', 'email', 'role'],
           },
           {
             model: this.models.Cases,
             as: 'related_case',
-            attributes: ['id', 'case_number', 'title', 'status']
+            attributes: ['id', 'case_number', 'title', 'status'],
           },
           {
             model: this.models.TicketMessage,
@@ -116,22 +116,22 @@ class SupportService {
               {
                 model: this.models.User,
                 as: 'user',
-                attributes: ['id', 'full_name', 'email', 'role']
+                attributes: ['id', 'full_name', 'email', 'role'],
               },
               {
                 model: this.models.TicketAttachment,
                 as: 'attachments',
-                attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size']
-              }
+                attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
+              },
             ],
-            order: [['created_at', 'ASC']]
+            order: [['created_at', 'ASC']],
           },
           {
             model: this.models.TicketAttachment,
             as: 'ticket_attachments',
-            attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size']
-          }
-        ]
+            attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
+          },
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to fetch ticket: ${error.message}`);
@@ -180,14 +180,14 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email', 'role']
+            attributes: ['id', 'full_name', 'email', 'role'],
           },
           {
             model: this.models.TicketAttachment,
             as: 'attachments',
-            attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size']
-          }
-        ]
+            attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
+          },
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to add message: ${error.message}`);
@@ -202,15 +202,15 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email', 'role']
+            attributes: ['id', 'full_name', 'email', 'role'],
           },
           {
             model: this.models.TicketAttachment,
             as: 'attachments',
-            attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size']
-          }
+            attributes: ['ticket_attachment_id', 'filename', 'original_name', 'mime_type', 'size'],
+          },
         ],
-        order: [['created_at', 'ASC']]
+        order: [['created_at', 'ASC']],
       });
     } catch (error) {
       throw new Error(`Failed to fetch messages: ${error.message}`);
@@ -230,9 +230,9 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email', 'role']
-          }
-        ]
+            attributes: ['id', 'full_name', 'email', 'role'],
+          },
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to update message: ${error.message}`);
@@ -257,7 +257,7 @@ class SupportService {
   async getFAQs(filters = {}) {
     try {
       const whereClause = { is_active: true };
-      
+
       if (filters.category) {
         whereClause.category = filters.category;
       }
@@ -268,10 +268,13 @@ class SupportService {
           {
             model: this.models.User,
             as: 'author',
-            attributes: ['id', 'full_name']
-          }
+            attributes: ['id', 'full_name'],
+          },
         ],
-        order: [['order', 'ASC'], ['created_at', 'DESC']]
+        order: [
+          ['order', 'ASC'],
+          ['created_at', 'DESC'],
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to fetch FAQs: ${error.message}`);
@@ -286,9 +289,9 @@ class SupportService {
           {
             model: this.models.User,
             as: 'author',
-            attributes: ['id', 'full_name']
-          }
-        ]
+            attributes: ['id', 'full_name'],
+          },
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to create FAQ: ${error.message}`);
@@ -308,9 +311,9 @@ class SupportService {
           {
             model: this.models.User,
             as: 'author',
-            attributes: ['id', 'full_name']
-          }
-        ]
+            attributes: ['id', 'full_name'],
+          },
+        ],
       });
     } catch (error) {
       throw new Error(`Failed to update FAQ: ${error.message}`);
@@ -335,39 +338,33 @@ class SupportService {
   async getSupportStats(userId = null, userRole = null) {
     try {
       const whereClause = {};
-      
+
       // If user is not admin, only show their tickets
       if (userRole !== 'admin' && userId) {
         whereClause.user_id = userId;
       }
 
       const totalTickets = await this.models.SupportTicket.count({ where: whereClause });
-      const openTickets = await this.models.SupportTicket.count({ 
-        where: { ...whereClause, status: 'open' } 
+      const openTickets = await this.models.SupportTicket.count({
+        where: { ...whereClause, status: 'open' },
       });
-      const inProgressTickets = await this.models.SupportTicket.count({ 
-        where: { ...whereClause, status: 'in_progress' } 
+      const inProgressTickets = await this.models.SupportTicket.count({
+        where: { ...whereClause, status: 'in_progress' },
       });
-      const resolvedTickets = await this.models.SupportTicket.count({ 
-        where: { ...whereClause, status: 'resolved' } 
+      const resolvedTickets = await this.models.SupportTicket.count({
+        where: { ...whereClause, status: 'resolved' },
       });
 
       const ticketsByCategory = await this.models.SupportTicket.findAll({
-        attributes: [
-          'category',
-          [this.models.sequelize.fn('COUNT', this.models.sequelize.col('support_ticket_id')), 'count']
-        ],
+        attributes: ['category', [this.models.sequelize.fn('COUNT', this.models.sequelize.col('support_ticket_id')), 'count']],
         where: whereClause,
-        group: ['category']
+        group: ['category'],
       });
 
       const ticketsByPriority = await this.models.SupportTicket.findAll({
-        attributes: [
-          'priority',
-          [this.models.sequelize.fn('COUNT', this.models.sequelize.col('support_ticket_id')), 'count']
-        ],
+        attributes: ['priority', [this.models.sequelize.fn('COUNT', this.models.sequelize.col('support_ticket_id')), 'count']],
         where: whereClause,
-        group: ['priority']
+        group: ['priority'],
       });
 
       return {
@@ -376,7 +373,7 @@ class SupportService {
         in_progress_tickets: inProgressTickets,
         resolved_tickets: resolvedTickets,
         tickets_by_category: ticketsByCategory,
-        tickets_by_priority: ticketsByPriority
+        tickets_by_priority: ticketsByPriority,
       };
     } catch (error) {
       throw new Error(`Failed to fetch support stats: ${error.message}`);
@@ -392,17 +389,17 @@ class SupportService {
           {
             model: this.models.User,
             as: 'user',
-            attributes: ['id', 'full_name', 'email']
+            attributes: ['id', 'full_name', 'email'],
           },
           {
             model: this.models.TicketMessage,
             as: 'messages',
             attributes: ['ticket_message_id', 'message', 'created_at'],
             limit: 1,
-            order: [['created_at', 'DESC']]
-          }
+            order: [['created_at', 'DESC']],
+          },
         ],
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
       });
     } catch (error) {
       throw new Error(`Failed to fetch case tickets: ${error.message}`);
@@ -418,21 +415,21 @@ class SupportService {
           {
             model: this.models.User,
             as: 'assigned_agent',
-            attributes: ['id', 'full_name', 'email']
+            attributes: ['id', 'full_name', 'email'],
           },
           {
             model: this.models.Cases,
             as: 'related_case',
-            attributes: ['id', 'case_number', 'title']
+            attributes: ['id', 'case_number', 'title'],
           },
           {
             model: this.models.TicketMessage,
             as: 'messages',
             attributes: ['ticket_message_id'],
-            limit: 1
-          }
+            limit: 1,
+          },
         ],
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
       });
     } catch (error) {
       throw new Error(`Failed to fetch user support history: ${error.message}`);

@@ -168,7 +168,7 @@ const AuthService = {
       // Generate OTP & expiry time
       const { otp, expiryTime } = generateOTPTimestamped(10, 300000, true);
       await user.update({ otp, expiryTime });
-          // Send OTP email
+      // Send OTP email
       const userName = `${user.full_name}`;
       await sendResetPasswordCodeEmail(user.id, userName, user.email, otp);
       return { message: 'An OTP has been sent to your email. Please verify to proceed with password reset.' };

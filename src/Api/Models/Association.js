@@ -16,128 +16,128 @@ Cases.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
 User.hasMany(Cases, { foreignKey: 'advocateId', as: 'assignedCases' });
 Cases.belongsTo(User, { foreignKey: 'advocateId', as: 'advocate' });
 
-Cases.hasMany(Payment, { foreignKey: "case_id", as: "payments" });
-Payment.belongsTo(Cases, { foreignKey: "client_id", as: "case" });
+Cases.hasMany(Payment, { foreignKey: 'case_id', as: 'payments' });
+Payment.belongsTo(Cases, { foreignKey: 'client_id', as: 'case' });
 
 // User has many Documents
 User.hasMany(UserDocument, {
   foreignKey: 'user_id',
-  as: 'userDocuments' // Changed from 'documents'
+  as: 'userDocuments', // Changed from 'documents'
 });
 
 UserDocument.belongsTo(User, {
   foreignKey: 'user_id',
-  as: 'user'
+  as: 'user',
 });
 
 // Case has many Documents
 Cases.hasMany(UserDocument, {
   foreignKey: 'case_id',
-  as: 'caseDocuments' // Changed from 'documents'
+  as: 'caseDocuments', // Changed from 'documents'
 });
 
 UserDocument.belongsTo(Cases, {
   foreignKey: 'case_id',
-  as: 'case'
+  as: 'case',
 });
 
 // SupportTicket Associations
 SupportTicket.belongsTo(User, {
   foreignKey: 'user_id',
-  as: 'user'
+  as: 'user',
 });
 
 SupportTicket.belongsTo(User, {
   foreignKey: 'assigned_to',
-  as: 'assigned_agent'
+  as: 'assigned_agent',
 });
 
 SupportTicket.belongsTo(Cases, {
   foreignKey: 'case_id',
-  as: 'related_case'
+  as: 'related_case',
 });
 
 SupportTicket.hasMany(TicketMessage, {
   foreignKey: 'ticket_id',
-  as: 'messages'
+  as: 'messages',
 });
 
 SupportTicket.hasMany(TicketAttachment, {
   foreignKey: 'ticket_id',
-  as: 'ticket_attachments'
+  as: 'ticket_attachments',
 });
 
 // TicketMessage Associations
 TicketMessage.belongsTo(SupportTicket, {
   foreignKey: 'ticket_id',
-  as: 'ticket'
+  as: 'ticket',
 });
 
 TicketMessage.belongsTo(User, {
   foreignKey: 'user_id',
-  as: 'user'
+  as: 'user',
 });
 
 TicketMessage.hasMany(TicketAttachment, {
   foreignKey: 'message_id',
-  as: 'attachments'
+  as: 'attachments',
 });
 
 // TicketAttachment Associations
 TicketAttachment.belongsTo(SupportTicket, {
   foreignKey: 'ticket_id',
-  as: 'ticket'
+  as: 'ticket',
 });
 
 TicketAttachment.belongsTo(TicketMessage, {
   foreignKey: 'message_id',
-  as: 'message'
+  as: 'message',
 });
 
 TicketAttachment.belongsTo(User, {
   foreignKey: 'uploaded_by',
-  as: 'uploader'
+  as: 'uploader',
 });
 
 // FAQ Associations
 FAQ.belongsTo(User, {
   foreignKey: 'created_by',
-  as: 'author'
+  as: 'author',
 });
 
 // Reverse Associations from existing models
 User.hasMany(SupportTicket, {
   foreignKey: 'user_id',
-  as: 'support_tickets'
+  as: 'support_tickets',
 });
 
 User.hasMany(SupportTicket, {
   foreignKey: 'assigned_to',
-  as: 'assigned_support_tickets'
+  as: 'assigned_support_tickets',
 });
 
 User.hasMany(TicketMessage, {
   foreignKey: 'user_id',
-  as: 'ticket_messages'
+  as: 'ticket_messages',
 });
 
 User.hasMany(TicketAttachment, {
   foreignKey: 'uploaded_by',
-  as: 'uploaded_attachments'
+  as: 'uploaded_attachments',
 });
 
 User.hasMany(FAQ, {
   foreignKey: 'created_by',
-  as: 'created_faqs'
+  as: 'created_faqs',
 });
 
 Cases.hasMany(SupportTicket, {
   foreignKey: 'case_id',
-  as: 'support_tickets'
+  as: 'support_tickets',
 });
 
 // Generate unique ticket number
-SupportTicket.beforeCreate(async (ticket) => {
+SupportTicket.beforeCreate(async ticket => {
   const timestamp = Date.now().toString().slice(-6);
   const random = Math.random().toString(36).substring(2, 5).toUpperCase();
   ticket.ticket_number = `TKT-${timestamp}-${random}`;
@@ -157,7 +157,5 @@ module.exports = {
   SupportTicket,
   TicketMessage,
   TicketAttachment,
-  FAQ
+  FAQ,
 };
-
-
