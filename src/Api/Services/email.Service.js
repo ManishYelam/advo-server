@@ -8,6 +8,8 @@ const {
 } = require('../EmailTemplets/Templates');
 const { User } = require('../Models/Association');
 
+const FRONTEND_URL = process.env.FRONTEND_URL;
+
 module.exports = {
   sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link, pdfBuffer) => {
     const user_Email = userEmail;
@@ -37,9 +39,8 @@ module.exports = {
       console.log('✅ Email sent successfully');
     }
   },
-
   // ✅
-  sendLaunchCodeEmail: async (userId, userName, userEmail, verificationUrl, otp, password) => {
+  sendLaunchCodeEmail: async (userId, userName, userEmail, otp, password) => {
     const user_Email = userEmail;
     const subject = '🚀 Your Exclusive Service Launch Code is Here!';
     const template_Name = 'LaunchCodeTemplate';
@@ -47,7 +48,7 @@ module.exports = {
       userId: userId,
       userName: userName,
       launchCode: otp,
-      verificationUrl: verificationUrl,
+      verificationUrl: `${FRONTEND_URL}/verify-email/${userId}/${otp}`,
       password: password,
     };
     sendMail(user_Email, subject, template_Name, template_Data);
@@ -72,12 +73,12 @@ module.exports = {
     const template_Data = {
       userId: userId,
       userName: userName,
-      resetPasswordUrl: "http://localhost:5173/reset-password"
+      resetPasswordUrl: `${FRONTEND_URL}/reset-password`
     };
     sendMail(user_Email, subject, template_Name, template_Data);
   },
 
-  sendResetPasswordCodeEmail: async (userId, userName, userEmail, resetLink, resetPasswordLink, otp) => {
+  sendResetPasswordCodeEmail: async (userId, userName, userEmail, otp) => {
     const user_Email = userEmail;
     const subject = '🔑 Password Reset Request – Secure Your Account';
     const template_Name = 'sendResetPasswordTemplate';
@@ -85,8 +86,10 @@ module.exports = {
       userId,
       userName,
       otp,
-      resetLink,
-      resetPasswordLink,
+      resetLink: `${FRONTEND_URL}/forgot-password/api/users/verify?userId=${userId}&otp=${otp}`,
+      resetPasswordLink: `${FRONTEND_URL}/forgot-password/verify-reset-password?userId=${userId}&token=${otp}`,
+      // resetLink: `https://localhost:5000/api/users/verify?userId=${userId}&otp=${otp}`,
+      // resetPasswordLink: `http://localhost:5000/verify-reset-password?userId=${userId}&token=${otp}`,
     };
     sendMail(user_Email, subject, template_Name, template_Data);
   },

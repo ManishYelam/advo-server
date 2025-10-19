@@ -165,19 +165,12 @@ const AuthService = {
       if (!user) {
         throw new Error('User not found');
       }
-
       // Generate OTP & expiry time
       const { otp, expiryTime } = generateOTPTimestamped(10, 300000, true);
       await user.update({ otp, expiryTime });
-
-      // Generate verification and reset password links
-      const resetVerificationLink = `https://mbvdvt7z-5000.inc1.devtunnels.ms/api/users/verify?userId=${user.id}&otp=${otp}`;
-      const resetPasswordLink = `http://localhost:5000/verify-reset-password?userId=${user.id}&token=${otp}`;
-
-      // Send OTP email
+          // Send OTP email
       const userName = `${user.full_name}`;
-      await sendResetPasswordCodeEmail(user.id, userName, user.email, resetVerificationLink, resetPasswordLink, otp);
-
+      await sendResetPasswordCodeEmail(user.id, userName, user.email, otp);
       return { message: 'An OTP has been sent to your email. Please verify to proceed with password reset.' };
     } catch (error) {
       throw new Error(`Forgot password request failed: ${error.message}`);

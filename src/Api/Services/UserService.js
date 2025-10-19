@@ -16,7 +16,7 @@ module.exports = {
       const newUser = await User.create(data);
 
       const verificationUrl = `https://mbvdvt7z-5000.inc1.devtunnels.ms/api/users/verify?userId=${newUser.id}&otp=${otp}`;
-      const userName = `${newUser.first_name} ${newUser.last_name}`;
+      const userName = `${newUser.full_name}`;
       await sendLaunchCodeEmail(newUser.id, userName, newUser.email, verificationUrl, otp);
 
       return newUser;
@@ -27,10 +27,13 @@ module.exports = {
 
   verifyCreateUser: async (userId, launchCode) => {
     try {
+      // console.log(userId, launchCode);
       const user = await User.findByPk(userId);
+      // console.log(user);
       if (!user) throw new Error('User not found');
 
       const { otp, expiryTime } = user;
+      // console.log(otp, expiryTime);
       if (!otp || !expiryTime) throw new Error('Launch code is missing or expired');
 
       const { isValid, message } = verifyOTPTimestamped(launchCode, otp, expiryTime);
@@ -49,6 +52,31 @@ module.exports = {
       const userName = `${user.first_name} ${user.last_name}`;
       await sendVerificationEmail(userName, user.email, generate_password);
 
+      return user;
+    } catch (error) {
+      throw new Error(`${error.message}`);
+    }
+  },
+
+  resendVerification: async (userId) => {
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) throw new Error('User not found');
+
+      const { otp, expiryTime } = generateOTPTimestamped(10, 3600000, true);
+      // console.log(otp, expiryTime);
+      if (!otp || !expiryTime) throw new Error('Launch code is missing or expired');
+
+      const generate_password = generateStrongPassword(16);
+      const password = await hashPassword(generate_password);
+      // Update user verification status
+      user.isVerified = false;
+      user.otp = otp;
+      user.expiryTime = expiryTime;
+      user.password = password;
+      await user.save();
+      const userName = `${user.full_name}`;
+      await sendVerificationEmail(userName, user.email, generate_password);
       return user;
     } catch (error) {
       throw new Error(`${error.message}`);
@@ -233,111 +261,111 @@ module.exports = {
   },
 
   updateApplicationFilePath: async (userId, filePath, options = {}) => {
-  try {
-    const {
-      applicationId = null,
-      documentType = 'application_pdf',
-      fileName = null,
-      fileSize = 0,
-      description = 'Application Form PDF',
-      updateUserRecord = true
-    } = options;
+    try {
+      const {
+        applicationId = null,
+        documentType = 'application_pdf',
+        fileName = null,
+        fileSize = 0,
+        description = 'Application Form PDF',
+        updateUserRecord = true
+      } = options;
 
-    // ✅ Step 1: Find the case
-    const whereClause = { client_id: userId };
-    if (applicationId) {
-      whereClause.id = applicationId;
-    }
+      // ✅ Step 1: Find the case
+      const whereClause = { client_id: userId };
+      if (applicationId) {
+        whereClause.id = applicationId;
+      }
 
-    const caseRecord = await Cases.findOne({
-      where: whereClause,
-      order: [['createdAt', 'DESC']]
-    });
+      const caseRecord = await Cases.findOne({
+        where: whereClause,
+        order: [['createdAt', 'DESC']]
+      });
 
-    if (!caseRecord) {
+      if (!caseRecord) {
+        return {
+          success: false,
+          error: "No case found for this user. Please save application first."
+        };
+      }
+
+      // ✅ Step 2: Extract only file paths from existing documents and add new one
+      let currentFilePaths = [];
+
+      if (caseRecord.documents) {
+        if (Array.isArray(caseRecord.documents)) {
+          // If it's already an array, extract file paths from objects or use strings directly
+          currentFilePaths = caseRecord.documents.map(doc => {
+            if (typeof doc === 'string') {
+              return doc; // Already a file path string
+            } else if (doc && doc.url) {
+              return doc.url; // Extract url from object
+            } else if (doc && doc.path) {
+              return doc.path; // Extract path from object
+            }
+            return null;
+          }).filter(Boolean); // Remove null values
+        } else if (typeof caseRecord.documents === 'object' && caseRecord.documents.url) {
+          // If it's a single object with url
+          currentFilePaths = [caseRecord.documents.url];
+        }
+      }
+
+      // Add the new file path (convert to relative path if needed)
+      const relativeFilePath = filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/');
+      const updatedFilePaths = [...currentFilePaths, relativeFilePath];
+
+      await caseRecord.update({
+        documents: updatedFilePaths,
+        updatedAt: new Date()
+      });
+
+      // ✅ Step 3: Create UserDocument with full details
+      const userDocument = await UserDocument.create({
+        user_id: userId,
+        case_id: caseRecord.id,
+        document_type: documentType,
+        file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
+        file_path: filePath, // Store full path in UserDocument
+        file_size: fileSize,
+        mime_type: 'application/pdf',
+        description,
+        uploaded_by: userId,
+        is_active: true,
+        metadata: {
+          originalName: fileName,
+          uploadedAt: new Date().toISOString(),
+          documentVersion: '1.0'
+        }
+      });
+
+      // ✅ Step 4: Optionally update User table
+      if (updateUserRecord) {
+        await User.update(
+          {
+            last_application_pdf: relativeFilePath, // Store relative path in User
+            updatedAt: new Date()
+          },
+          { where: { id: userId } }
+        );
+      }
+
+      // console.log(`✅ Case updated for user ${userId}`);
+      // console.log(`✅ UserDocument created with ID: ${userDocument.id}`);
+      // console.log(`✅ File paths in case: ${updatedFilePaths.length}`);
+
       return {
-        success: false,
-        error: "No case found for this user. Please save application first."
+        success: true,
+        message: 'File path stored successfully',
+        caseId: caseRecord.id,
+        userDocumentId: userDocument.id,
+        documentsCount: updatedFilePaths.length
       };
+
+    } catch (error) {
+      console.error('❌ Error updating application file path:', error);
+      return { success: false, error: error.message };
     }
-
-    // ✅ Step 2: Extract only file paths from existing documents and add new one
-    let currentFilePaths = [];
-    
-    if (caseRecord.documents) {
-      if (Array.isArray(caseRecord.documents)) {
-        // If it's already an array, extract file paths from objects or use strings directly
-        currentFilePaths = caseRecord.documents.map(doc => {
-          if (typeof doc === 'string') {
-            return doc; // Already a file path string
-          } else if (doc && doc.url) {
-            return doc.url; // Extract url from object
-          } else if (doc && doc.path) {
-            return doc.path; // Extract path from object
-          }
-          return null;
-        }).filter(Boolean); // Remove null values
-      } else if (typeof caseRecord.documents === 'object' && caseRecord.documents.url) {
-        // If it's a single object with url
-        currentFilePaths = [caseRecord.documents.url];
-      }
-    }
-
-    // Add the new file path (convert to relative path if needed)
-    const relativeFilePath = filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/');
-    const updatedFilePaths = [...currentFilePaths, relativeFilePath];
-
-    await caseRecord.update({ 
-      documents: updatedFilePaths, 
-      updatedAt: new Date() 
-    });
-
-    // ✅ Step 3: Create UserDocument with full details
-    const userDocument = await UserDocument.create({
-      user_id: userId,
-      case_id: caseRecord.id,
-      document_type: documentType,
-      file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
-      file_path: filePath, // Store full path in UserDocument
-      file_size: fileSize,
-      mime_type: 'application/pdf',
-      description,
-      uploaded_by: userId,
-      is_active: true,
-      metadata: {
-        originalName: fileName,
-        uploadedAt: new Date().toISOString(),
-        documentVersion: '1.0'
-      }
-    });
-
-    // ✅ Step 4: Optionally update User table
-    if (updateUserRecord) {
-      await User.update(
-        {
-          last_application_pdf: relativeFilePath, // Store relative path in User
-          updatedAt: new Date()
-        },
-        { where: { id: userId } }
-      );
-    }
-
-    // console.log(`✅ Case updated for user ${userId}`);
-    // console.log(`✅ UserDocument created with ID: ${userDocument.id}`);
-    // console.log(`✅ File paths in case: ${updatedFilePaths.length}`);
-
-    return {
-      success: true,
-      message: 'File path stored successfully',
-      caseId: caseRecord.id,
-      userDocumentId: userDocument.id,
-      documentsCount: updatedFilePaths.length
-    };
-
-  } catch (error) {
-    console.error('❌ Error updating application file path:', error);
-    return { success: false, error: error.message };
   }
-}
 
 }

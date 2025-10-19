@@ -4,6 +4,7 @@ const { generateApplicationPDF } = require('../../Utils/generateApplicationPDF')
 const { deleteFile } = require('../Helpers/fileHelper');
 const { sendApplicantRegEmail } = require('../Services/email.Service');
 const userService = require('../Services/UserService');
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 module.exports = {
   checkExistsEmail: async (req, res) => {
@@ -44,6 +45,16 @@ module.exports = {
       res.status(201).json({ success: true, message: 'User created successfully', user: newUser });
     } catch (error) {
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  resendVerification: async (req, res) => {
+    try {
+      const { userId } = req.query;
+      const newUser = await userService.resendVerification(userId);
+      res.status(200).json({ message: 'Resend verification link !', user: newUser });
+    } catch (error) {
+      res.status(500).json({ message: 'Resend failed: ' + error.message });
     }
   },
 
@@ -250,7 +261,7 @@ module.exports = {
 
       // Send email with attachment (only if not logged in)
       if (!body.isLogin && saved.user?.id && user_data.email) {
-        const reg_link = `http://localhost:5173/applicant/${saved.user.id}`;
+        const reg_link = `${FRONTEND_URL}/applicant/${saved.user.id}`;
 
         await sendApplicantRegEmail(
           saved.user.id,

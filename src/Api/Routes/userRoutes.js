@@ -10,7 +10,8 @@ const userRouter = express.Router();
 userRouter
   .post('/email',  userController.checkExistsEmail)
   .post('/', validateAsync(createUserSchema), userController.createUser)
-  .get('/verify', userController.verifyCreateUser)
+  .post('/verify', userController.verifyCreateUser)
+  .post('/resend-verification', userController.resendVerification)
   .get('/', authMiddleware, userController.getAllUsers)
   .post('/v2', authMiddleware, userController.getAllUsersV2)
   .get('/:id', userController.getUserById)

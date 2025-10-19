@@ -6,6 +6,7 @@ const Cases = require('./Cases');
 const Contact = require('./Contacts');
 const Payment = require('./Payment');
 const UserDocument = require('./UserDocument');
+const { SupportTicket, TicketMessage, TicketAttachment, FAQ } = require('./SupportCenter');
 
 // One client can have many cases
 User.hasMany(Cases, { foreignKey: 'clientId', as: 'cases' });
@@ -40,6 +41,107 @@ UserDocument.belongsTo(Cases, {
   as: 'case'
 });
 
+// SupportTicket Associations
+SupportTicket.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
+
+SupportTicket.belongsTo(User, {
+  foreignKey: 'assigned_to',
+  as: 'assigned_agent'
+});
+
+SupportTicket.belongsTo(Cases, {
+  foreignKey: 'case_id',
+  as: 'related_case'
+});
+
+SupportTicket.hasMany(TicketMessage, {
+  foreignKey: 'ticket_id',
+  as: 'messages'
+});
+
+SupportTicket.hasMany(TicketAttachment, {
+  foreignKey: 'ticket_id',
+  as: 'ticket_attachments'
+});
+
+// TicketMessage Associations
+TicketMessage.belongsTo(SupportTicket, {
+  foreignKey: 'ticket_id',
+  as: 'ticket'
+});
+
+TicketMessage.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
+
+TicketMessage.hasMany(TicketAttachment, {
+  foreignKey: 'message_id',
+  as: 'attachments'
+});
+
+// TicketAttachment Associations
+TicketAttachment.belongsTo(SupportTicket, {
+  foreignKey: 'ticket_id',
+  as: 'ticket'
+});
+
+TicketAttachment.belongsTo(TicketMessage, {
+  foreignKey: 'message_id',
+  as: 'message'
+});
+
+TicketAttachment.belongsTo(User, {
+  foreignKey: 'uploaded_by',
+  as: 'uploader'
+});
+
+// FAQ Associations
+FAQ.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'author'
+});
+
+// Reverse Associations from existing models
+User.hasMany(SupportTicket, {
+  foreignKey: 'user_id',
+  as: 'support_tickets'
+});
+
+User.hasMany(SupportTicket, {
+  foreignKey: 'assigned_to',
+  as: 'assigned_support_tickets'
+});
+
+User.hasMany(TicketMessage, {
+  foreignKey: 'user_id',
+  as: 'ticket_messages'
+});
+
+User.hasMany(TicketAttachment, {
+  foreignKey: 'uploaded_by',
+  as: 'uploaded_attachments'
+});
+
+User.hasMany(FAQ, {
+  foreignKey: 'created_by',
+  as: 'created_faqs'
+});
+
+Cases.hasMany(SupportTicket, {
+  foreignKey: 'case_id',
+  as: 'support_tickets'
+});
+
+// Generate unique ticket number
+SupportTicket.beforeCreate(async (ticket) => {
+  const timestamp = Date.now().toString().slice(-6);
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  ticket.ticket_number = `TKT-${timestamp}-${random}`;
+});
 
 module.exports = {
   User,
@@ -49,9 +151,13 @@ module.exports = {
   Cases,
   Contact,
   Payment,
-  UserDocument
+  UserDocument,
+
+  // Support models
+  SupportTicket,
+  TicketMessage,
+  TicketAttachment,
+  FAQ
 };
-
-
 
 

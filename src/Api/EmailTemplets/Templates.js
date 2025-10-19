@@ -1,3 +1,5 @@
+const FRONTEND_URL = process.env.FRONTEND_URL;
+
 module.exports = {
   // ✅
   LaunchCodeTemplate: data => `
@@ -147,7 +149,7 @@ module.exports = {
             <p><strong>OR</strong></p>
 
             <p>Enter your OTP manually by clicking below:</p>
-            <a href="http://localhost:5173/verify?userId=${data.userId}" class="btn-manual">Enter OTP Manually</a>
+            <a href="${FRONTEND_URL}/verify?userId=${data.userId}" class="btn-manual">Enter OTP Manually</a>
 
             <p><b>Note:</b> This OTP is valid for <strong>1 hour</strong>. If you do not verify your email within this time, your account may be deleted automatically.</p>
 
@@ -308,7 +310,7 @@ module.exports = {
             </div>
 
             <p>You can now log in to your account:</p>
-            <a href="http://localhost:5173/login" class="btn">Login Now</a>
+            <a href="${FRONTEND_URL}/login" class="btn">Login Now</a>
 
             <p><strong>OR</strong></p>
 
@@ -461,7 +463,7 @@ module.exports = {
 
             <p><strong>User ID:</strong> ${data.userId}</p>
             <p>You can securely log in here:</p>
-            <a href="http://localhost:5173/login" class="btn">Login Now</a>
+            <a href="${FRONTEND_URL}/login" class="btn">Login Now</a>
 
             <p><strong>OR</strong></p>
 
