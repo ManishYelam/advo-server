@@ -1,12 +1,58 @@
-// services/supportService.js
-const { Op } = require('sequelize');
-const { SupportTicket, User, Cases, TicketMessage, TicketAttachment, FAQ, sequelize } = require('../Models/Association');
+const { Op, Sequelize } = require('sequelize');
+const { SupportTicket, User, Cases, TicketMessage, TicketAttachment, FAQ } = require('../Models/Association');
+const sequelize = require('../../Config/Database/sequelize.config');
 
 module.exports = {
   // Ticket Methods
-  createTicket: async ticketData => {
+    createTicket: async ticketData => {
+    const transaction = await sequelize.MAIN_DB_NAME.transaction();
+    
     try {
-      const ticket = await SupportTicket.create(ticketData);
+      // console.log('Creating ticket with data:', ticketData);
+
+      // Handle case_id - set to null if empty, undefined, or invalid
+      let finalCaseId = null;
+      if (ticketData.case_id && Number.isInteger(Number(ticketData.case_id))) {
+        const caseId = parseInt(ticketData.case_id, 10);
+        
+        // Check if case exists
+        const caseExists = await Cases.findByPk(caseId, { transaction });
+        if (caseExists) {
+          finalCaseId = caseId;
+          // console.log('Valid case ID found:', finalCaseId);
+        } else {
+          // console.log('Case ID not found, setting to null');
+          finalCaseId = null;
+        }
+      }
+
+      // Prepare the final ticket data
+      const finalTicketData = {
+        user_id: ticketData.user_id,
+        subject: ticketData.subject,
+        category: ticketData.category,
+        priority: ticketData.priority,
+        description: ticketData.description,
+        case_id: finalCaseId, // This will be null if invalid or not provided
+        attachments: ticketData.attachments || null,
+        assigned_to: ticketData.assigned_to || null
+      };
+
+      // console.log('Final ticket data for creation:', finalTicketData);
+
+      // Create the ticket - let the model hooks handle ticket_number generation
+      const ticket = await SupportTicket.create(finalTicketData, { transaction });
+      
+      console.log('Ticket created successfully:', {
+        id: ticket.support_ticket_id,
+        ticket_number: ticket.ticket_number,
+        case_id: ticket.case_id
+      });
+      
+      // Commit transaction
+      await transaction.commit();
+      
+      // Return the created ticket with associations
       return await SupportTicket.findByPk(ticket.support_ticket_id, {
         include: [
           {
@@ -27,7 +73,18 @@ module.exports = {
         ],
       });
     } catch (error) {
-      throw new Error(`Failed to create ticket: ${error.message}`);
+      await transaction.rollback();
+      console.error('Error in createTicket:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.name === 'SequelizeForeignKeyConstraintError') {
+        errorMessage = 'Invalid user or case reference. Please check the provided IDs.';
+      } else if (error.name === 'SequelizeValidationError') {
+        errorMessage = 'Validation failed: ' + error.errors.map(e => e.message).join(', ');
+      }
+      
+      throw new Error(`Failed to create ticket: ${errorMessage}`);
     }
   },
 
@@ -353,13 +410,14 @@ module.exports = {
       });
 
       const ticketsByCategory = await SupportTicket.findAll({
-        attributes: ['category', [sequelize.fn('COUNT', sequelize.col('support_ticket_id')), 'count']],
+        attributes: ['category', [Sequelize
+          .fn('COUNT', Sequelize.col('support_ticket_id')), 'count']],
         where: whereClause,
         group: ['category'],
       });
 
       const ticketsByPriority = await SupportTicket.findAll({
-        attributes: ['priority', [sequelize.fn('COUNT', sequelize.col('support_ticket_id')), 'count']],
+        attributes: ['priority', [Sequelize.fn('COUNT', Sequelize.col('support_ticket_id')), 'count']],
         where: whereClause,
         group: ['priority'],
       });

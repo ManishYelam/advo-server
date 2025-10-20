@@ -18,7 +18,7 @@ const ticketSchema = Joi.object({
     'any.required': 'Description is required',
     'string.empty': 'Description cannot be empty',
   }),
-  case_id: Joi.number().integer().optional().messages({
+  case_id: Joi.number().integer().allow(null).optional().messages({
     'number.base': 'Case ID must be an integer',
   }),
 });

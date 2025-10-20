@@ -54,15 +54,19 @@ const Cases = sequelize.MAIN_DB_NAME.define(
       type: DataTypes.DECIMAL(5, 2),
       allowNull: false,
     },
-    // case_number: {
-    //   type: DataTypes.STRING,
-    //   allowNull: false,
-    //   unique: true,
-    // },
+    case_number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
     // case_name: {
     //   type: DataTypes.STRING,
     //   allowNull: false,
     // },
+    title: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     description: {
       type: DataTypes.TEXT,
       allowNull: true,

@@ -56,6 +56,8 @@ SupportTicket.belongsTo(User, {
 SupportTicket.belongsTo(Cases, {
   foreignKey: 'case_id',
   as: 'related_case',
+  onDelete: "SET NULL",
+  onUpdate: "CASCADE",
 });
 
 SupportTicket.hasMany(TicketMessage, {
@@ -138,12 +140,23 @@ Cases.hasMany(SupportTicket, {
 });
 
 // Generate unique ticket number
-SupportTicket.beforeCreate(async ticket => {
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  ticket.ticket_number = `TKT-${timestamp}-${random}`;
-});
+// In your SupportTicket model definition, ensure the hook is properly set
+// SupportTicket.beforeCreate(async (ticket) => {
+//   try {
+//     const timestamp = Date.now().toString().slice(-6);
+//     const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+//     ticket.ticket_number = `TKT-${timestamp}-${random}`;
 
+//     // Ensure it's set
+//     console.log('Generated ticket number:', ticket.ticket_number);
+//   } catch (error) {
+//     console.error('Error generating ticket number:', error);
+//     // Fallback generation
+//     const timestamp = Date.now();
+//     const random = Math.floor(Math.random() * 1000);
+//     ticket.ticket_number = `TKT-${timestamp}-${random}`;
+//   }
+// });
 Feedback.belongsTo(User, {
   foreignKey: 'user_id',
   as: 'user',

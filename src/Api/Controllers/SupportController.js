@@ -1,27 +1,23 @@
+const supportService = require("../Services/SupportService");
+
 module.exports = {
   // Create new support ticket
-  createTicket: async (req, res) => {
+   createTicket: async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
       const { subject, category, priority, description, case_id, attachments } = req.body;
 
+      // Prepare ticket data - let the service handle case_id validation
       const ticketData = {
-        user_id: req.user.id,
+        user_id: req.user_info.id,
         subject,
         category,
         priority,
         description,
-        case_id,
+        case_id: case_id || null, // Ensure it's null if not provided
         attachments,
       };
+
+      console.log('Controller - Creating ticket with data:', ticketData);
 
       const ticket = await supportService.createTicket(ticketData);
 
@@ -31,6 +27,7 @@ module.exports = {
         data: { ticket },
       });
     } catch (error) {
+      console.error('Controller error creating ticket:', error);
       res.status(500).json({
         success: false,
         message: error.message,
@@ -43,7 +40,7 @@ module.exports = {
     try {
       const { page = 1, limit = 10, status, category, search } = req.query;
 
-      const filters = { user_id: req.user.id };
+      const filters = { user_id: req.user_info.id };
       if (status) filters.status = status;
       if (category) filters.category = category;
       if (search) filters.search = search;
@@ -76,8 +73,8 @@ module.exports = {
       if (search) filters.search = search;
 
       // If user is advocate, show only assigned tickets
-      if (req.user.role === 'advocate') {
-        filters.assigned_to = req.user.id;
+      if (req.user_info.role === 'advocate') {
+        filters.assigned_to = req.user_info.id;
       }
 
       const result = await supportService.getTickets(filters, parseInt(page), parseInt(limit));
@@ -109,7 +106,7 @@ module.exports = {
       }
 
       // Check if user owns the ticket or is admin/advocate
-      if (ticket.user_id !== req.user.id && !['admin', 'advocate'].includes(req.user.role) && ticket.assigned_to !== req.user.id) {
+      if (ticket.user_id !== req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role) && ticket.assigned_to !== req.user_info.id) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',
@@ -144,7 +141,7 @@ module.exports = {
       }
 
       // Only admin/advocate can update assigned_to and status
-      if (!['admin', 'advocate'].includes(req.user.role)) {
+      if (!['admin', 'advocate'].includes(req.user_info.role)) {
         delete updateData.assigned_to;
         delete updateData.status;
         delete updateData.priority;
@@ -152,9 +149,9 @@ module.exports = {
 
       // Only ticket owner or admin/advocate can update
       if (
-        existingTicket.user_id !== req.user.id &&
-        !['admin', 'advocate'].includes(req.user.role) &&
-        existingTicket.assigned_to !== req.user.id
+        existingTicket.user_id !== req.user_info.id &&
+        !['admin', 'advocate'].includes(req.user_info.role) &&
+        existingTicket.assigned_to !== req.user_info.id
       ) {
         return res.status(403).json({
           success: false,
@@ -211,7 +208,7 @@ module.exports = {
         });
       }
 
-      if (ticket.user_id !== req.user.id && !['admin', 'advocate'].includes(req.user.role) && ticket.assigned_to !== req.user.id) {
+      if (ticket.user_id !== req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role) && ticket.assigned_to !== req.user_info.id) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',
@@ -220,7 +217,7 @@ module.exports = {
 
       const messageData = {
         ticket_id: parseInt(ticketId),
-        user_id: req.user.id,
+        user_id: req.user_info.id,
         message,
         is_internal,
       };
@@ -254,7 +251,7 @@ module.exports = {
         });
       }
 
-      if (ticket.user_id !== req.user.id && !['admin', 'advocate'].includes(req.user.role) && ticket.assigned_to !== req.user.id) {
+      if (ticket.user_id !== req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role) && ticket.assigned_to !== req.user_info.id) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',
@@ -307,7 +304,7 @@ module.exports = {
         answer,
         category,
         order,
-        created_by: req.user.id,
+        created_by: req.user_info.id,
       };
 
       const faq = await supportService.createFAQ(faqData);
@@ -368,7 +365,7 @@ module.exports = {
   // Get support statistics
   getStats: async (req, res) => {
     try {
-      const stats = await supportService.getSupportStats(req.user.id, req.user.role);
+      const stats = await supportService.getSupportStats(req.user_info.id, req.user_info.role);
 
       res.json({
         success: true,
@@ -410,7 +407,7 @@ module.exports = {
       const { userId } = req.params;
 
       // Users can only see their own history, admins/advocates can see any
-      if (userId != req.user.id && !['admin', 'advocate'].includes(req.user.role)) {
+      if (userId != req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role)) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',
