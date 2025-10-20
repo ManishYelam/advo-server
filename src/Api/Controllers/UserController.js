@@ -136,8 +136,6 @@ module.exports = {
 
   // Save Application Function
   saveApplication: async (req, res) => {
-    console.log(req);
-
     let storedFilePath = null;
 
     try {
@@ -189,12 +187,18 @@ module.exports = {
         documents: body.documents || {},
       };
 
+      const status = body.status || body.order?.status || 'Pending';
+      const amount_due = body.order?.amount_due || body.amount_due || 0;
+
       const payment_data = {
         method: body.method,
         payment_id: body.paymentId || body.payment_id,
         amount: body.order?.amount || body.amount || 0,
-        amount_due: body.order?.amount_due || 0,
-        amount_paid: body.order?.amount_paid || 0,
+        amount_due,
+        amount_paid:
+          status === 'Paid'
+            ? amount_due // ✅ Auto-assign amount_paid = amount_due if Paid
+            : body.order?.amount_paid || body.amount_paid || 0,
         attempts: body.order?.attempts || 0,
         created_at: body.order?.created_at ? new Date(body.order.created_at * 1000).toISOString() : null,
         currency: body.order?.currency,
@@ -203,7 +207,7 @@ module.exports = {
         notes: body.order?.notes,
         offer_id: body.order?.offer_id,
         receipt: body.order?.receipt,
-        status: body.status || body.order?.status || 'Pending',
+        status,
       };
 
       // Save application data
