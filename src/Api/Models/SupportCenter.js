@@ -30,7 +30,7 @@ const SupportTicket = sequelize.MAIN_DB_NAME.define(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      defaultValue: generateTicketNumber // Add defaultValue here
+      defaultValue: generateTicketNumber, // Add defaultValue here
     },
     subject: {
       type: DataTypes.STRING,
@@ -95,21 +95,21 @@ const SupportTicket = sequelize.MAIN_DB_NAME.define(
     timestamps: true,
     underscored: true,
     hooks: {
-      beforeValidate: (ticket) => {
+      beforeValidate: ticket => {
         console.log('=== BEFORE VALIDATE HOOK FIRED ===');
         if (!ticket.ticket_number) {
           ticket.ticket_number = generateTicketNumber();
           console.log('Generated ticket number in beforeValidate:', ticket.ticket_number);
         }
       },
-      beforeCreate: (ticket) => {
+      beforeCreate: ticket => {
         console.log('=== BEFORE CREATE HOOK FIRED ===');
         if (!ticket.ticket_number) {
           ticket.ticket_number = generateTicketNumber();
           console.log('Generated ticket number in beforeCreate:', ticket.ticket_number);
         }
-      }
-    }
+      },
+    },
   }
 );
 

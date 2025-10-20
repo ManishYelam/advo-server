@@ -2,7 +2,12 @@ const express = require('express');
 const authMiddleware = require('../Middlewares/authorizationMiddleware');
 const roleAuth = require('../Middlewares/roleAuth');
 const validate = require('../Middlewares/validateMiddleware');
-const { submitFeedback, getUserFeedback, getAllFeedback, updateStatus } = require('../Middlewares/Joi_Validations/feedbackValidation');
+const {
+  submitFeedback,
+  getUserFeedback,
+  getAllFeedback,
+  updateStatus,
+} = require('../Middlewares/Joi_Validations/feedbackValidation');
 const feedbackController = require('../Controllers/feedbackController');
 const feedbackRouter = express.Router();
 

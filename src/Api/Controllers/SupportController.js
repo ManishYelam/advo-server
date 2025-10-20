@@ -1,8 +1,8 @@
-const supportService = require("../Services/SupportService");
+const supportService = require('../Services/SupportService');
 
 module.exports = {
   // Create new support ticket
-   createTicket: async (req, res) => {
+  createTicket: async (req, res) => {
     try {
       const { subject, category, priority, description, case_id, attachments } = req.body;
 
@@ -106,7 +106,11 @@ module.exports = {
       }
 
       // Check if user owns the ticket or is admin/advocate
-      if (ticket.user_id !== req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role) && ticket.assigned_to !== req.user_info.id) {
+      if (
+        ticket.user_id !== req.user_info.id &&
+        !['admin', 'advocate'].includes(req.user_info.role) &&
+        ticket.assigned_to !== req.user_info.id
+      ) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',
@@ -208,7 +212,11 @@ module.exports = {
         });
       }
 
-      if (ticket.user_id !== req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role) && ticket.assigned_to !== req.user_info.id) {
+      if (
+        ticket.user_id !== req.user_info.id &&
+        !['admin', 'advocate'].includes(req.user_info.role) &&
+        ticket.assigned_to !== req.user_info.id
+      ) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',
@@ -251,7 +259,11 @@ module.exports = {
         });
       }
 
-      if (ticket.user_id !== req.user_info.id && !['admin', 'advocate'].includes(req.user_info.role) && ticket.assigned_to !== req.user_info.id) {
+      if (
+        ticket.user_id !== req.user_info.id &&
+        !['admin', 'advocate'].includes(req.user_info.role) &&
+        ticket.assigned_to !== req.user_info.id
+      ) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',

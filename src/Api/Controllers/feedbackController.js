@@ -1,9 +1,9 @@
-const feedbackService = require("../Services/feedbackService");
+const feedbackService = require('../Services/feedbackService');
 
 module.exports = {
   // Submit new feedback
   submitFeedback: async (req, res) => {
-    try {     
+    try {
       const { rating, category, message } = req.body;
       const userId = req.user_info.id;
 
@@ -36,15 +36,7 @@ module.exports = {
   // Get all feedback (admin only)
   getAllFeedback: async (req, res) => {
     try {
-      const { 
-        page = 1, 
-        limit = 10, 
-        category, 
-        status, 
-        userId, 
-        sortBy = 'createdAt', 
-        sortOrder = 'DESC' 
-      } = req.query;
+      const { page = 1, limit = 10, category, status, userId, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
 
       const result = await feedbackService.getAllFeedback({
         page: parseInt(page),
@@ -72,7 +64,7 @@ module.exports = {
     try {
       const { id } = req.params;
       const result = await feedbackService.getFeedbackById(parseInt(id));
-      
+
       return res.status(result.success ? 200 : 404).json(result);
     } catch (error) {
       console.error('Get feedback by ID error:', error);
@@ -90,11 +82,7 @@ module.exports = {
       const { id } = req.params;
       const { status, adminNotes } = req.body;
 
-      const result = await feedbackService.updateFeedbackStatus(
-        parseInt(id), 
-        status, 
-        adminNotes
-      );
+      const result = await feedbackService.updateFeedbackStatus(parseInt(id), status, adminNotes);
 
       return res.status(result.success ? 200 : 404).json(result);
     } catch (error) {
@@ -149,7 +137,7 @@ module.exports = {
     try {
       const { id } = req.params;
       const result = await feedbackService.deleteFeedback(parseInt(id));
-      
+
       return res.status(result.success ? 200 : 404).json(result);
     } catch (error) {
       console.error('Delete feedback error:', error);

@@ -56,8 +56,8 @@ SupportTicket.belongsTo(User, {
 SupportTicket.belongsTo(Cases, {
   foreignKey: 'case_id',
   as: 'related_case',
-  onDelete: "SET NULL",
-  onUpdate: "CASCADE",
+  onDelete: 'SET NULL',
+  onUpdate: 'CASCADE',
 });
 
 SupportTicket.hasMany(TicketMessage, {
