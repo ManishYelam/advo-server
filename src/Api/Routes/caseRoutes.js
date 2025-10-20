@@ -4,6 +4,7 @@ const CaseController = require('../Controllers/CaseController');
 const validateAsync = require('../Middlewares/validateAsyncMiddleware');
 const validate = require('../Middlewares/validateMiddleware');
 const { create_client_case_schema, create_admin_case_schema } = require('../Middlewares/Joi_Validations/caseSchma');
+const roleAuth = require('../Middlewares/roleAuth');
 
 const caseRouter = express.Router();
 
@@ -24,7 +25,7 @@ caseRouter
   .put('/:id/admin', authMiddleware, CaseController.updateCase)
 
   // Delete a case by ID
-  .delete('/:id', authMiddleware, CaseController.deleteCase);
+  .delete('/:id', authMiddleware, roleAuth(['admin', 'advocate']), CaseController.deleteCase);
 
 // Export router
 module.exports = {
