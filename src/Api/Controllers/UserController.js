@@ -142,11 +142,9 @@ module.exports = {
       const body = req.body;
       const UPLOAD_DIR = process.env.UPLOAD_DIR;
 
-      // Helper function to ensure directory exists (sync)
       const ensureDirExists = dirPath => {
         if (!fs.existsSync(dirPath)) {
           fs.mkdirSync(dirPath, { recursive: true });
-          // console.log(`✅ Created directory: ${dirPath}`);
         }
       };
 
@@ -188,17 +186,21 @@ module.exports = {
       };
 
       const status = body.status || body.order?.status || 'Pending';
-      const amount_due = body.order?.amount_due || body.amount_due || 0;
+      const amount = body.order?.amount || body.amount || 0;
+      let amount_due = body.order?.amount_due || body.amount_due || 0;
+      let amount_paid = body.order?.amount_paid || body.amount_paid || 0;
+
+      if (status === 'Paid') {
+        amount_paid = amount;
+        amount_due = 0;
+      }
 
       const payment_data = {
         method: body.method,
         payment_id: body.paymentId || body.payment_id,
-        amount: body.order?.amount || body.amount || 0,
+        amount,
         amount_due,
-        amount_paid:
-          status === 'Paid'
-            ? amount_due // ✅ Auto-assign amount_paid = amount_due if Paid
-            : body.order?.amount_paid || body.amount_paid || 0,
+        amount_paid,
         attempts: body.order?.attempts || 0,
         created_at: body.order?.created_at ? new Date(body.order.created_at * 1000).toISOString() : null,
         currency: body.order?.currency,
@@ -210,64 +212,34 @@ module.exports = {
         status,
       };
 
-      // Save application data
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
+      if (!saved.success) throw new Error('Failed to save application data');
 
-      if (!saved.success) {
-        throw new Error('Failed to save application data');
-      }
-
-      // Generate PDF
       const pdfBuffer = await generateApplicationPDF(user_data, case_data, payment_data, body.documents);
-
-      if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
-        console.warn('⚠️ PDF generation returned invalid buffer');
-      }
-
-      // Store PDF file if generation was successful
       if (pdfBuffer && Buffer.isBuffer(pdfBuffer) && saved.user?.id) {
         try {
           const userFolder = path.join(UPLOAD_DIR, saved.user.id.toString());
-
-          // Ensure user directory exists (sync)
           ensureDirExists(userFolder);
-
-          // Generate unique filename
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const filename = `application_${saved.user.id}_${timestamp}.pdf`;
           storedFilePath = path.join(userFolder, filename);
-
-          // Write file (sync)
           fs.writeFileSync(storedFilePath, pdfBuffer);
-          // console.log(`✅ PDF stored successfully: ${storedFilePath}`);
-
-          // Optional: You can store the file path in your database here
           await userService.updateApplicationFilePath(saved.user.id, storedFilePath, {
-            applicationId: saved.case?.id || saved.application?.id, // Use saved.case.id
+            applicationId: saved.case?.id || saved.application?.id,
             documentType: 'application_pdf',
             fileSize: pdfBuffer.length,
-            fileName: filename, // Pass the filename
+            fileName: filename,
             description: 'Application Form PDF',
           });
         } catch (storageError) {
           console.error('❌ Failed to store PDF file:', storageError);
           storedFilePath = null;
-          // Continue with email even if storage fails
         }
       }
 
-      // Send email with attachment (only if not logged in)
       if (!body.isLogin && saved.user?.id && user_data.email) {
         const reg_link = `${FRONTEND_URL}/applicant/${saved.user.id}`;
-
-        await sendApplicantRegEmail(
-          saved.user.id,
-          user_data.full_name,
-          user_data.email,
-          reg_link,
-          pdfBuffer, // Send buffer for email attachment
-          storedFilePath // Pass file path for reference
-        );
+        await sendApplicantRegEmail(saved.user.id, user_data.full_name, user_data.email, reg_link, pdfBuffer, storedFilePath);
       }
 
       const result = {
@@ -275,7 +247,7 @@ module.exports = {
         data: saved,
         pdfGenerated: !!pdfBuffer,
         pdfStored: !!storedFilePath,
-        storedFilePath: storedFilePath,
+        storedFilePath,
         userId: saved.user?.id,
       };
 
@@ -283,11 +255,9 @@ module.exports = {
     } catch (error) {
       console.error('❌ Error saving application:', error);
 
-      // Clean up stored file if there was an error after storage (sync)
       if (storedFilePath && fs.existsSync(storedFilePath)) {
         try {
           fs.unlinkSync(storedFilePath);
-          // console.log(`🧹 Cleaned up file due to error: ${storedFilePath}`);
         } catch (cleanupError) {
           console.error('❌ Error cleaning up file:', cleanupError);
         }
