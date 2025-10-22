@@ -5,6 +5,7 @@ const { deleteFile } = require('../Helpers/fileHelper');
 const { sendApplicantRegEmail } = require('../Services/email.Service');
 const userService = require('../Services/UserService');
 const FRONTEND_URL = process.env.FRONTEND_URL;
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../..', 'UPLOAD_DIR');
 
 module.exports = {
   checkExistsEmail: async (req, res) => {
@@ -136,11 +137,15 @@ module.exports = {
 
   // Save Application Function
   saveApplication: async (req, res) => {
-    let storedFilePath = null;
+    let storedFiles = []; // Track all stored files for cleanup
 
     try {
-      const body = req.body;
-      const UPLOAD_DIR = process.env.UPLOAD_DIR;
+      // 1. Parse application data from form data
+      if (!req.body.applicationData) {
+        throw new Error('No applicationData found in request');
+      }
+
+      const applicationData = JSON.parse(req.body.applicationData);
 
       const ensureDirExists = dirPath => {
         if (!fs.existsSync(dirPath)) {
@@ -156,39 +161,42 @@ module.exports = {
 
       const parseNumber = value => (value ? parseFloat(value) : 0);
 
+      // 2. Extract user data
       const user_data = {
-        full_name: body.full_name,
-        dob: formatDate(body.date_of_birth),
-        age: body.age ? parseInt(body.age, 10) : '',
-        phone_number: body.phone_number,
-        email: body.email,
-        gender: body.gender,
-        occupation: body.occupation,
-        adhar_number: body.adhar_number,
-        address: body.address,
-        additional_notes: body.additional_notes,
+        full_name: applicationData.full_name,
+        dob: formatDate(applicationData.date_of_birth),
+        age: applicationData.age ? parseInt(applicationData.age, 10) : '',
+        phone_number: applicationData.phone_number,
+        email: applicationData.email,
+        gender: applicationData.gender,
+        occupation: applicationData.occupation,
+        adhar_number: applicationData.adhar_number,
+        address: applicationData.address,
+        additional_notes: applicationData.additional_notes,
       };
 
+      // 3. Extract case data
       const case_data = {
-        saving_account_start_date: formatDate(body.saving_account_start_date),
-        deposit_type: body.deposit_type,
-        deposit_duration_years: parseNumber(body.deposit_duration_years),
-        fixed_deposit_total_amount: parseNumber(body.fixed_deposit_total_amount),
-        interest_rate_fd: parseNumber(body.interest_rate_fd),
-        saving_account_total_amount: parseNumber(body.saving_account_total_amount),
-        interest_rate_saving: parseNumber(body.interest_rate_saving),
-        recurring_deposit_total_amount: parseNumber(body.recurring_deposit_total_amount),
-        interest_rate_recurring: parseNumber(body.interest_rate_recurring),
-        dnyanrudha_investment_total_amount: parseNumber(body.dnyanrudha_investment_total_amount),
-        dynadhara_rate: parseNumber(body.dynadhara_rate),
-        verified: body.verified,
-        documents: body.documents || {},
+        saving_account_start_date: formatDate(applicationData.saving_account_start_date),
+        deposit_type: applicationData.deposit_type,
+        deposit_duration_years: parseNumber(applicationData.deposit_duration_years),
+        fixed_deposit_total_amount: parseNumber(applicationData.fixed_deposit_total_amount),
+        interest_rate_fd: parseNumber(applicationData.interest_rate_fd),
+        saving_account_total_amount: parseNumber(applicationData.saving_account_total_amount),
+        interest_rate_saving: parseNumber(applicationData.interest_rate_saving),
+        recurring_deposit_total_amount: parseNumber(applicationData.recurring_deposit_total_amount),
+        interest_rate_recurring: parseNumber(applicationData.interest_rate_recurring),
+        dnyanrudha_investment_total_amount: parseNumber(applicationData.dnyanrudha_investment_total_amount),
+        dynadhara_rate: parseNumber(applicationData.dynadhara_rate),
+        verified: applicationData.verified,
+        documents: {},
       };
 
-      const status = body.status || body.order?.status || 'Pending';
-      const amount = body.order?.amount || body.amount || 0;
-      let amount_due = body.order?.amount_due || body.amount_due || 0;
-      let amount_paid = body.order?.amount_paid || body.amount_paid || 0;
+      // 4. Extract payment data
+      const status = applicationData.status || applicationData.order?.status || 'Pending';
+      const amount = applicationData.order?.amount || applicationData.amount || 0;
+      let amount_due = applicationData.order?.amount_due || applicationData.amount_due || 0;
+      let amount_paid = applicationData.order?.amount_paid || applicationData.amount_paid || 0;
 
       if (status === 'Paid') {
         amount_paid = amount;
@@ -196,71 +204,144 @@ module.exports = {
       }
 
       const payment_data = {
-        method: body.method,
-        payment_id: body.paymentId || body.payment_id,
+        method: applicationData.method,
+        payment_id: applicationData.paymentId || applicationData.payment_id,
         amount,
         amount_due,
         amount_paid,
-        attempts: body.order?.attempts || 0,
-        created_at: body.order?.created_at ? new Date(body.order.created_at * 1000).toISOString() : null,
-        currency: body.order?.currency,
-        entity: body.order?.entity,
-        order_id: body.order?.id || body.orderId || body.order_id,
-        notes: body.order?.notes,
-        offer_id: body.order?.offer_id,
-        receipt: body.order?.receipt,
+        attempts: applicationData.order?.attempts || 0,
+        created_at: applicationData.order?.created_at ? new Date(applicationData.order.created_at * 1000).toISOString() : null,
+        currency: applicationData.order?.currency,
+        entity: applicationData.order?.entity,
+        order_id: applicationData.order?.id || applicationData.orderId || applicationData.order_id,
+        notes: applicationData.order?.notes,
+        offer_id: applicationData.order?.offer_id,
+        receipt: applicationData.order?.receipt,
         status,
       };
 
+      // 5. Save basic application data first
       const saved = await userService.saveApplication(user_data, case_data, payment_data);
       if (!saved.success) throw new Error('Failed to save application data');
 
-      const pdfBuffer = await generateApplicationPDF(user_data, case_data, payment_data, body.documents);
-      if (pdfBuffer && Buffer.isBuffer(pdfBuffer) && saved.user?.id) {
-        try {
-          const userFolder = path.join(UPLOAD_DIR, saved.user.id.toString());
-          ensureDirExists(userFolder);
+      const userId = saved.user?.id;
+      if (!userId) throw new Error('User ID not found after saving');
+
+      // 6. Handle file uploads
+      const userFolder = path.join(UPLOAD_DIR, userId.toString());
+      ensureDirExists(userFolder);
+
+      // Handle application form PDF
+      if (req.files && req.files.applicationForm) {
+        const applicationFormFile = req.files.applicationForm[0];
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `application_${userId}_${timestamp}.pdf`;
+        const filePath = path.join(userFolder, filename);
+        fs.renameSync(applicationFormFile.path, filePath);
+        storedFiles.push(filePath);
+
+        await userService.updateApplicationFilePath(userId, filePath, {
+          applicationId: saved.case?.id,
+          documentType: 'application_pdf',
+          fileSize: applicationFormFile.size,
+          fileName: filename,
+          description: 'Application Form PDF',
+        });
+      }
+
+      // Handle exhibit documents
+      if (req.files && req.files.documents) {
+        const documentFiles = req.files.documents;
+        const documentMetadata = req.body.documentMetadata
+          ? Array.isArray(req.body.documentMetadata)
+            ? req.body.documentMetadata.map(meta => JSON.parse(meta))
+            : [JSON.parse(req.body.documentMetadata)]
+          : [];
+
+        const documentsFolder = path.join(userFolder, 'documents');
+        ensureDirExists(documentsFolder);
+
+        const savedDocuments = [];
+
+        for (let i = 0; i < documentFiles.length; i++) {
+          const file = documentFiles[i];
+          const meta = documentMetadata[i] || {};
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          const filename = `application_${saved.user.id}_${timestamp}.pdf`;
-          storedFilePath = path.join(userFolder, filename);
-          fs.writeFileSync(storedFilePath, pdfBuffer);
-          await userService.updateApplicationFilePath(saved.user.id, storedFilePath, {
-            applicationId: saved.case?.id || saved.application?.id,
-            documentType: 'application_pdf',
-            fileSize: pdfBuffer.length,
+          const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const filename = `doc_${meta.exhibit}_${timestamp}_${safeFileName}`;
+          const filePath = path.join(documentsFolder, filename);
+          fs.renameSync(file.path, filePath);
+          storedFiles.push(filePath);
+
+          savedDocuments.push({
+            exhibit: meta.exhibit,
             fileName: filename,
-            description: 'Application Form PDF',
+            originalName: meta.originalName || file.originalname,
+            filePath: filePath,
+            fileSize: file.size,
+            fileType: file.mimetype,
+            documentId: meta.documentId,
+            uploadedAt: new Date().toISOString(),
           });
-        } catch (storageError) {
-          console.error('❌ Failed to store PDF file:', storageError);
-          storedFilePath = null;
+        }
+
+        if (savedDocuments.length > 0) {
+          // await userService.saveApplicationDocuments(userId, saved.case?.id, savedDocuments);
         }
       }
 
-      if (!body.isLogin && saved.user?.id && user_data.email) {
-        const reg_link = `${FRONTEND_URL}/applicant/${saved.user.id}`;
-        await sendApplicantRegEmail(saved.user.id, user_data.full_name, user_data.email, reg_link, pdfBuffer, storedFilePath);
+      // 7. Generate PDF if not already uploaded (fallback)
+      let pdfBuffer = null;
+      if (!req.files || !req.files.applicationForm) {
+        try {
+          pdfBuffer = await generateApplicationPDF(user_data, case_data, payment_data, applicationData.documents);
+          if (pdfBuffer && Buffer.isBuffer(pdfBuffer)) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `generated_application_${userId}_${timestamp}.pdf`;
+            const filePath = path.join(userFolder, filename);
+            fs.writeFileSync(filePath, pdfBuffer);
+            storedFiles.push(filePath);
+          }
+        } catch (pdfError) {}
       }
 
+      // 8. Send email notification (if needed)
+      if (!applicationData.isLogin && userId && user_data.email) {
+        try {
+          const reg_link = `${FRONTEND_URL}/applicant/${userId}`;
+          const pdfPath = storedFiles.find(file => file.includes('application_'));
+          await sendApplicantRegEmail(
+            userId,
+            user_data.full_name,
+            user_data.email,
+            reg_link,
+            pdfPath ? fs.readFileSync(pdfPath) : pdfBuffer,
+            pdfPath
+          );
+        } catch (emailError) {}
+      }
+
+      // 9. Return success response
       const result = {
         message: '✅ Application saved successfully!',
-        data: saved,
-        pdfGenerated: !!pdfBuffer,
-        pdfStored: !!storedFilePath,
-        storedFilePath,
-        userId: saved.user?.id,
+        data: {
+          ...saved,
+          documentsCount: storedFiles.length,
+          storedFiles: storedFiles.map(file => path.basename(file)),
+        },
+        userId,
       };
 
       return res.status(200).json(result);
     } catch (error) {
-      console.error('❌ Error saving application:', error);
-
-      if (storedFilePath && fs.existsSync(storedFilePath)) {
-        try {
-          fs.unlinkSync(storedFilePath);
-        } catch (cleanupError) {
-          console.error('❌ Error cleaning up file:', cleanupError);
-        }
+      if (storedFiles.length > 0) {
+        storedFiles.forEach(filePath => {
+          try {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          } catch (cleanupError) {}
+        });
       }
 
       return res.status(500).json({

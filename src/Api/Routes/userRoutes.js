@@ -19,9 +19,40 @@ userRouter
   .put('/:id', userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
   .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
-  .post('/save-application', userController.saveApplication);
+  .post('/save-application', uploadPublicMiddleware.uploadApplicationMiddleware, userController.saveApplication);
+
+// Test route for environment variables
+// userRouter.get('/test-env', userController.testEnv);
+
+// Test route for uploads
+// userRouter.post('/test-upload', uploadApplicationMiddleware, (req, res) => {
+//   console.log('🧪 Test upload received:');
+//   console.log('📁 Files:', req.files);
+//   console.log('📝 Body keys:', Object.keys(req.body));
+
+//   return res.status(200).json({
+//     message: 'Upload test successful',
+//     files: req.files ? Object.keys(req.files) : [],
+//     body: Object.keys(req.body),
+//     fileCount: {
+//       applicationForm: req.files?.applicationForm?.length || 0,
+//       documents: req.files?.documents?.length || 0
+//     }
+//   });
+// });
+
+// Merge management routes
+// userRouter.get('/merge-status/:userId', userController.checkMergeStatus);
+// userRouter.post('/trigger-merge/:userId', userController.triggerMerge);
+// userRouter.post('/trigger-cleanup/:userId', userController.triggerCleanup);
+
+// Court document generation
+// userRouter.get('/generate-court-doc/:userId', userController.generateCourtDoc);
 
 // Export both routers properly
 module.exports = {
   userRouter,
 };
+
+// const maintenanceService = require('./services/maintenanceService');
+// maintenanceService.start();

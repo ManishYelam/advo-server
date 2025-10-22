@@ -1,22 +1,26 @@
-import PDFDocument from 'pdfkit';
-import PDFTable from 'pdfkit-table';
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const Handlebars = require('handlebars');
 
-// Helper functions (keep the same)
-const getFileType = filename => {
-  if (!filename) return 'Unknown';
-  const ext = filename.split('.').pop().toLowerCase();
-  const typeMap = {
-    pdf: 'PDF',
-    doc: 'Word',
-    docx: 'Word',
-    jpg: 'Image',
-    jpeg: 'Image',
-    png: 'Image',
-    txt: 'Text',
-    xls: 'Excel',
-    xlsx: 'Excel',
-  };
-  return typeMap[ext] || ext.toUpperCase();
+// Helper functions
+const formatDate = dateString => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const formatCurrency = amount => {
+  if (!amount) return '₹0';
+  return `₹${parseInt(amount).toLocaleString('en-IN')}`;
+};
+
+const formatPercentage = rate => {
+  if (!rate) return '0.00%';
+  return `${parseFloat(rate).toFixed(2)}%`;
 };
 
 const formatFileSize = bytes => {
@@ -27,456 +31,946 @@ const formatFileSize = bytes => {
   return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-const countTotalDocuments = documents => {
-  if (!documents) return 0;
-  return Object.values(documents).reduce((total, exhibitDocs) => {
-    return total + (Array.isArray(exhibitDocs) ? exhibitDocs.length : 0);
-  }, 0);
-};
-
-// PDF Generation Function with corrected footer handling
-export const generateApplicationPDF = (user_data, case_data, payment_data, documents = {}) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({
-        margin: 50,
-        size: 'A4',
-      });
-
-      const chunks = [];
-
-      // Track pages manually for footer
-      let pageCount = 0;
-      doc.on('pageAdded', () => {
-        pageCount++;
-      });
-
-      doc.on('data', chunk => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      // Helper function to format dates for PDF
-      const formatDatePDF = dateString => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        });
-      };
-
-      // Helper function to format currency for PDF
-      const formatCurrencyPDF = amount => {
-        if (!amount) return '₹0';
-        return `₹${parseInt(amount)}`;
-      };
-
-      // Helper function to format percentage for PDF
-      const formatPercentagePDF = rate => {
-        if (!rate) return '0.00%';
-        return `${parseFloat(rate).toFixed(2)}%`;
-      };
-
-      // Function to add footer to current page
-      const addFooter = (currentPage, totalPages) => {
-        const bottomY = doc.page.height - 30;
-        doc
-          .fontSize(8)
-          .fillColor('#7f8c8d')
-          .text(
-            `Page ${currentPage} of ${totalPages} | Application ID: ${payment_data.order_id || 'N/A'} | Generated on: ${new Date().toLocaleString()}`,
-            30,
-            bottomY,
-            { align: 'center' }
-          );
-      };
-
-      // ===== PAGE 1 - NEW FORMAT =====
-      pageCount = 1;
-
-      // Header
-      doc.fontSize(20).font('Helvetica-Bold').fillColor('#000000').text('INVESTMENT APPLICATION FORM', { align: 'center' });
-
-      doc.moveDown(1.5);
-
-      // Section 1: BASIC INFORMATION
-      doc.fontSize(14).font('Helvetica-Bold').text('1. BASIC INFORMATION');
-
-      doc.moveDown(0.3);
-
-      // Draw table border
-      const tableWidth = 500;
-      const col1 = 180,
-        col2 = 160,
-        col3 = 160;
-
-      // Table header background
-      doc.rect(50, doc.y, tableWidth, 20).fill('#f0f0f0');
-
-      // Table headers
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000');
-      doc.text('Full Name: ' + (user_data.full_name || ''), 55, doc.y + 6);
-      doc.text('Phone No.: ' + (user_data.phone_number || ''), 55 + col1, doc.y + 6);
-      doc.text('Aadhar No.: ' + (user_data.adhar_number || ''), 55 + col1 + col2, doc.y + 6);
-
-      doc.y += 20;
-
-      // Row 1
-      doc.fontSize(10).font('Helvetica').fillColor('#000000');
-      doc.text('Date of Birth: ' + formatDatePDF(user_data.dob), 55, doc.y + 6);
-      doc.text('Age: ' + (user_data.age ? user_data.age + ' years' : ''), 55 + col1, doc.y + 6);
-      doc.text('Email: ' + (user_data.email || ''), 55 + col1 + col2, doc.y + 6);
-
-      doc.y += 20;
-
-      // Row 2
-      doc.text('Gender: ' + (user_data.gender || ''), 55, doc.y + 6);
-      doc.text('Occupation: ' + (user_data.occupation || ''), 55 + col1, doc.y + 6);
-      doc.text('Address: ' + (user_data.address ? user_data.address.split('\n')[0] : ''), 55 + col1 + col2, doc.y + 6);
-
-      doc.y += 25;
-
-      // Horizontal line
-      doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#cccccc').stroke();
-
-      doc.moveDown(1);
-
-      // Section 2: DEPOSIT DETAILS
-      doc.fontSize(14).font('Helvetica-Bold').text('2. DEPOSIT DETAILS');
-
-      doc.moveDown(0.5);
-
-      // Deposit details in two columns
-      const leftCol = 50;
-      const rightCol = 300;
-      const lineHeight = 18;
-
-      let currentY = doc.y;
-
-      // Left column
-      doc.fontSize(10).font('Helvetica-Bold').text('Account Start:', leftCol, currentY);
-      doc.font('Helvetica').text(formatDatePDF(case_data.saving_account_start_date), leftCol + 80, currentY);
-
-      doc.font('Helvetica-Bold').text('Deposit Type:', leftCol, currentY + lineHeight);
-      doc.font('Helvetica').text(case_data.deposit_type || '', leftCol + 80, currentY + lineHeight);
-
-      doc.font('Helvetica-Bold').text('Duration:', leftCol, currentY + lineHeight * 2);
-      doc.font('Helvetica').text((case_data.deposit_duration_years || '') + ' years', leftCol + 80, currentY + lineHeight * 2);
-
-      doc.font('Helvetica-Bold').text('FD Amount:', leftCol, currentY + lineHeight * 3);
-      doc.font('Helvetica').text(formatCurrencyPDF(case_data.fixed_deposit_total_amount), leftCol + 80, currentY + lineHeight * 3);
-
-      doc.font('Helvetica-Bold').text('RD Amount:', leftCol, currentY + lineHeight * 4);
-      doc
-        .font('Helvetica')
-        .text(formatCurrencyPDF(case_data.recurring_deposit_total_amount), leftCol + 80, currentY + lineHeight * 4);
-
-      // Right column
-      doc.font('Helvetica-Bold').text('FD Rate:', rightCol, currentY);
-      doc.font('Helvetica').text(formatPercentagePDF(case_data.interest_rate_fd), rightCol + 80, currentY);
-
-      doc.font('Helvetica-Bold').text('RD Rate:', rightCol, currentY + lineHeight);
-      doc.font('Helvetica').text(formatPercentagePDF(case_data.interest_rate_recurring), rightCol + 80, currentY + lineHeight);
-
-      doc.font('Helvetica-Bold').text('Savings Amount:', rightCol, currentY + lineHeight * 2);
-      doc
-        .font('Helvetica')
-        .text(formatCurrencyPDF(case_data.saving_account_total_amount), rightCol + 80, currentY + lineHeight * 2);
-
-      doc.font('Helvetica-Bold').text('Investment Amount:', rightCol, currentY + lineHeight * 3);
-      doc
-        .font('Helvetica')
-        .text(formatCurrencyPDF(case_data.dnyanrudha_investment_total_amount), rightCol + 80, currentY + lineHeight * 3);
-
-      doc.font('Helvetica-Bold').text('Savings Rate:', rightCol, currentY + lineHeight * 4);
-      doc.font('Helvetica').text(formatPercentagePDF(case_data.interest_rate_saving), rightCol + 80, currentY + lineHeight * 4);
-
-      doc.font('Helvetica-Bold').text('Dynadhara Rate:', rightCol, currentY + lineHeight * 5);
-      doc.font('Helvetica').text(formatPercentagePDF(case_data.dynadhara_rate), rightCol + 80, currentY + lineHeight * 5);
-
-      doc.y = currentY + lineHeight * 6 + 20;
-
-      // Horizontal line
-      doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#cccccc').stroke();
-
-      doc.moveDown(1.5);
-
-      // Declaration Section
-      doc
-        .fontSize(10)
-        .font('Helvetica')
-        .text(
-          'I hereby solemnly affirm that the information provided above is true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom. I understand that any false information may lead to rejection of my application.',
-          {
-            align: 'justify',
-            lineGap: 4,
-          }
-        );
-
-      doc.moveDown(1);
-
-      // Verification Checkbox
-      doc.fontSize(10).font('Helvetica-Bold').text('✓ VERIFIED AND CONFIRMED BY APPLICANT', { align: 'center' });
-
-      doc.moveDown(1.5);
-
-      // System Generated Text
-      doc.fontSize(9).font('Helvetica-Bold').text('System Generated Document', { align: 'center' });
-
-      doc.fontSize(8).font('Helvetica').text('No manual signature required', { align: 'center' });
-
-      doc.moveDown(1.5);
-
-      // Signature Section
-      const signatureY = doc.y;
-
-      doc.fontSize(9).font('Helvetica').text('Place: ______', 50, signatureY);
-      doc.text('Date: ___/___/______', 300, signatureY);
-
-      doc.moveDown(2);
-
-      doc.fontSize(9).font('Helvetica-Bold').text('Signature of Applicant', 50, doc.y);
-      doc
-        .fontSize(8)
-        .font('Helvetica')
-        .text('(Authorized Signatory)', 50, doc.y + 12);
-
-      doc.moveDown(3);
-
-      // Footer for Page 1
-      addFooter(1, 1); // Start with 1 page, will update later
-
-      // ===== PAGE 2 - CASE DETAILS =====
-      doc.addPage();
-      pageCount = 2;
-      doc.fontSize(16).font('Helvetica-Bold').fillColor('#34495e').text('3. CASE DETAILS');
-
-      doc.moveDown(0.5);
-
-      const caseTable = {
-        headers: [
-          { label: 'Field', property: 'field', width: 200, headerColor: '#34495e' },
-          { label: 'Details', property: 'details', width: 300, headerColor: '#34495e' },
-        ],
-        datas: [
-          {
-            field: 'Saving Account Start Date',
-            details: case_data.saving_account_start_date
-              ? new Date(case_data.saving_account_start_date).toLocaleDateString()
-              : 'N/A',
-          },
-          { field: 'Deposit Type', details: case_data.deposit_type || 'N/A' },
-          { field: 'Deposit Duration (Years)', details: case_data.deposit_duration_years || 'N/A' },
-          {
-            field: 'Fixed Deposit Amount',
-            details: case_data.fixed_deposit_total_amount ? `₹${case_data.fixed_deposit_total_amount}` : 'N/A',
-          },
-          { field: 'FD Interest Rate', details: case_data.interest_rate_fd ? `${case_data.interest_rate_fd}%` : 'N/A' },
-          {
-            field: 'Saving Account Amount',
-            details: case_data.saving_account_total_amount ? `₹${case_data.saving_account_total_amount}` : 'N/A',
-          },
-          { field: 'Saving Interest Rate', details: case_data.interest_rate_saving ? `${case_data.interest_rate_saving}%` : 'N/A' },
-          {
-            field: 'Recurring Deposit Amount',
-            details: case_data.recurring_deposit_total_amount ? `₹${case_data.recurring_deposit_total_amount}` : 'N/A',
-          },
-          {
-            field: 'RD Interest Rate',
-            details: case_data.interest_rate_recurring ? `${case_data.interest_rate_recurring}%` : 'N/A',
-          },
-          {
-            field: 'Dnyanrudha Investment',
-            details: case_data.dnyanrudha_investment_total_amount ? `₹${case_data.dnyanrudha_investment_total_amount}` : 'N/A',
-          },
-          { field: 'Dynadhara Rate', details: case_data.dynadhara_rate ? `${case_data.dynadhara_rate}%` : 'N/A' },
-          { field: 'Verified', details: case_data.verified ? 'Yes' : 'No' },
-        ],
-      };
-
-      // Generate case table
-      doc.table(caseTable, {
-        prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
-        prepareRow: (row, indexColumn, indexRow, rectRow) => {
-          doc.font('Helvetica').fontSize(9);
-          indexColumn === 0 && doc.font('Helvetica-Bold');
-        },
-      });
-
-      // Footer for Page 2
-      addFooter(2, 2);
-
-      // ===== PAGE 3 - PAYMENT INFORMATION =====
-      doc.addPage();
-      pageCount = 3;
-      doc.fontSize(16).font('Helvetica-Bold').fillColor('#34495e').text('4. PAYMENT INFORMATION');
-
-      doc.moveDown(0.5);
-
-      const paymentTable = {
-        headers: [
-          { label: 'Field', property: 'field', width: 150, headerColor: '#34495e' },
-          { label: 'Details', property: 'details', width: 350, headerColor: '#34495e' },
-        ],
-        datas: [
-          { field: 'Payment Method', details: payment_data.method || 'N/A' },
-          { field: 'Payment ID', details: payment_data.payment_id || 'N/A' },
-          { field: 'Order ID', details: payment_data.order_id || 'N/A' },
-          { field: 'Amount', details: payment_data.amount ? `₹${(payment_data.amount / 100).toFixed(2)}` : 'N/A' },
-          { field: 'Amount Due', details: payment_data.amount_due ? `₹${(payment_data.amount_due / 100).toFixed(2)}` : 'N/A' },
-          { field: 'Amount Paid', details: payment_data.amount_paid ? `₹${(payment_data.amount_paid / 100).toFixed(2)}` : 'N/A' },
-          { field: 'Currency', details: payment_data.currency || 'N/A' },
-          { field: 'Status', details: payment_data.status || 'N/A' },
-          { field: 'Receipt', details: payment_data.receipt || 'N/A' },
-          { field: 'Payment Date', details: payment_data.created_at ? new Date(payment_data.created_at).toLocaleString() : 'N/A' },
-        ],
-      };
-
-      // Generate payment table
-      doc.table(paymentTable, {
-        prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
-        prepareRow: (row, indexColumn, indexRow, rectRow) => {
-          doc.font('Helvetica').fontSize(9);
-          indexColumn === 0 && doc.font('Helvetica-Bold');
-        },
-      });
-
-      // Footer for Page 3
-      addFooter(3, 3);
-
-      // Calculate total pages based on whether we have documents
-      let totalPages = 3; // Base pages: 1, 2, 3
-      let currentPage = 4;
-
-      // ===== PAGE 4 - DOCUMENTS & EXHIBITS =====
-      if (documents && Object.keys(documents).length > 0) {
-        doc.addPage();
-        pageCount = 4;
-        totalPages = 4;
-        currentPage = 4;
-
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#34495e').text('5. DOCUMENTS & EXHIBITS');
-
-        doc.moveDown(0.5);
-
-        // Process each exhibit
-        Object.entries(documents).forEach(([exhibitName, exhibitDocs], index) => {
-          if (index > 0) doc.moveDown(0.5);
-
-          // Exhibit Header
-          doc.fontSize(14).font('Helvetica-Bold').fillColor('#2c3e50').text(`${exhibitName.toUpperCase()}`);
-
-          doc.moveDown(0.3);
-
-          if (Array.isArray(exhibitDocs) && exhibitDocs.length > 0) {
-            const exhibitTable = {
-              headers: [
-                { label: 'Document Name', property: 'name', width: 200, headerColor: '#34495e' },
-                { label: 'Type', property: 'type', width: 100, headerColor: '#34495e' },
-                { label: 'Size', property: 'size', width: 80, headerColor: '#34495e' },
-                { label: 'Upload Date', property: 'date', width: 120, headerColor: '#34495e' },
-              ],
-              datas: exhibitDocs.map((doc, docIndex) => ({
-                name: doc.filename || doc.originalname || `Document ${docIndex + 1}`,
-                type: getFileType(doc.filename || doc.originalname || ''),
-                size: doc.size ? formatFileSize(doc.size) : 'N/A',
-                date: doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A',
-              })),
-            };
-
-            doc.table(exhibitTable, {
-              prepareHeader: () => doc.font('Helvetica-Bold').fontSize(8),
-              prepareRow: (row, indexColumn, indexRow, rectRow) => {
-                doc.font('Helvetica').fontSize(8);
-              },
-            });
-          } else {
-            doc.fontSize(10).font('Helvetica').fillColor('#7f8c8d').text('No documents available for this exhibit');
-          }
-        });
-
-        // Footer for Page 4
-        addFooter(4, 4);
-
-        // ===== PAGE 5 - APPLICATION SUMMARY =====
-        doc.addPage();
-        pageCount = 5;
-        totalPages = 5;
-        currentPage = 5;
-
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#34495e').text('6. APPLICATION SUMMARY');
-
-        doc.moveDown(0.5);
-
-        const summaryData = [
-          { item: 'Total Exhibits', value: documents ? Object.keys(documents).length : 0 },
-          { item: 'Total Documents', value: countTotalDocuments(documents) },
-          { item: 'Application Status', value: payment_data.status || 'Pending' },
-          { item: 'Verification Status', value: case_data.verified ? 'Verified' : 'Pending Verification' },
-          { item: 'Submission Date', value: new Date().toLocaleDateString() },
-        ];
-
-        const summaryTable = {
-          headers: [
-            { label: 'Summary Item', property: 'item', width: 200, headerColor: '#34495e' },
-            { label: 'Details', property: 'value', width: 300, headerColor: '#34495e' },
-          ],
-          datas: summaryData,
-        };
-
-        doc.table(summaryTable, {
-          prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
-          prepareRow: (row, indexColumn, indexRow, rectRow) => {
-            doc.font('Helvetica').fontSize(9);
-            indexColumn === 0 && doc.font('Helvetica-Bold');
-          },
-        });
-
-        // Footer for Page 5
-        addFooter(5, 5);
-      } else {
-        // If no documents, add summary to page 4
-        doc.addPage();
-        pageCount = 4;
-        totalPages = 4;
-        currentPage = 4;
-
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#34495e').text('5. APPLICATION SUMMARY');
-
-        doc.moveDown(0.5);
-
-        const summaryData = [
-          { item: 'Total Exhibits', value: 0 },
-          { item: 'Total Documents', value: 0 },
-          { item: 'Application Status', value: payment_data.status || 'Pending' },
-          { item: 'Verification Status', value: case_data.verified ? 'Verified' : 'Pending Verification' },
-          { item: 'Submission Date', value: new Date().toLocaleDateString() },
-        ];
-
-        const summaryTable = {
-          headers: [
-            { label: 'Summary Item', property: 'item', width: 200, headerColor: '#34495e' },
-            { label: 'Details', property: 'value', width: 300, headerColor: '#34495e' },
-          ],
-          datas: summaryData,
-        };
-
-        doc.table(summaryTable, {
-          prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
-          prepareRow: (row, indexColumn, indexRow, rectRow) => {
-            doc.font('Helvetica').fontSize(9);
-            indexColumn === 0 && doc.font('Helvetica-Bold');
-          },
-        });
-
-        // Footer for Page 4
-        addFooter(4, 4);
+// Amount in words function
+const amountToWords = amount => {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  let num = parseInt(amount);
+
+  if (num === 0) return 'Zero Rupees';
+  if (num === 1) return 'One Rupee Only';
+
+  let words = '';
+
+  // Crores
+  if (Math.floor(num / 10000000) > 0) {
+    words += amountToWords(Math.floor(num / 10000000)) + ' Crore ';
+    num %= 10000000;
+  }
+
+  // Lakhs
+  if (Math.floor(num / 100000) > 0) {
+    words += amountToWords(Math.floor(num / 100000)) + ' Lakh ';
+    num %= 100000;
+  }
+
+  // Thousands
+  if (Math.floor(num / 1000) > 0) {
+    words += amountToWords(Math.floor(num / 1000)) + ' Thousand ';
+    num %= 1000;
+  }
+
+  // Hundreds
+  if (Math.floor(num / 100) > 0) {
+    words += amountToWords(Math.floor(num / 100)) + ' Hundred ';
+    num %= 100;
+  }
+
+  // Tens and Ones
+  if (num > 0) {
+    if (words !== '') words += 'and ';
+
+    if (num < 10) {
+      words += ones[num];
+    } else if (num < 20) {
+      words += teens[num - 10];
+    } else {
+      words += tens[Math.floor(num / 10)];
+      if (num % 10 > 0) {
+        words += ' ' + ones[num % 10];
       }
-
-      doc.end();
-    } catch (error) {
-      reject(error);
     }
-  });
+  }
+
+  return words.trim() + ' Rupees Only';
 };
+
+// Professional Legal Document HTML Template with Exhibits Sections
+const htmlTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 60px 50px;
+            color: #000;
+            line-height: 1.6;
+            font-size: 12px;
+            background: #ffffff;
+        }
+        
+        .legal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .legal-header h2 {
+            font-size: 16px;
+            margin: 5px 0;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .case-details {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+        
+        .parties {
+            margin: 30px 0;
+            line-height: 1.8;
+        }
+        
+        .party-line {
+            margin: 5px 0;
+        }
+        
+        .index-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 11px;
+        }
+        
+        .index-table th, .index-table td {
+            border: 1px solid #000;
+            padding: 8px 5px;
+            text-align: left;
+        }
+        
+        .index-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .signature-section {
+            margin-top: 100px;
+            text-align: right;
+        }
+        
+        .advocate-name {
+            margin-top: 80px;
+            text-align: right;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .footer {
+            font-size: 9px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 30px;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 10px;
+        }
+        
+        /* Application Page Styles */
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .application-content {
+            text-align: justify;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .prayer-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        /* Fixed Deposit Receipt Styles */
+        .fd-receipt {
+            border: 2px solid #2c3e50;
+            padding: 25px;
+            margin: 20px 0;
+            background: #ffffff;
+            page-break-inside: avoid;
+        }
+        
+        .fd-header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 15px;
+        }
+        
+        .fd-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }
+        
+        .fd-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11px;
+        }
+        
+        .fd-table th {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        .fd-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .fd-total-row {
+            background: #ecf0f1;
+            font-weight: bold;
+        }
+        
+        .fd-amount-section {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .verification {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid #000;
+        }
+        
+        .affidavit {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #000;
+        }
+        
+        .vakalatnama {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #000;
+        }
+        
+        /* Exhibits Styles */
+        .exhibit-section {
+            margin: 30px 0;
+            border: 2px solid #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .exhibit-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .exhibit-content {
+            padding: 20px;
+        }
+        
+        .document-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11px;
+        }
+        
+        .document-table th {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        .document-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        
+        .document-row:hover {
+            background: #f8f9fa;
+        }
+        
+        .document-info {
+            margin: 5px 0;
+        }
+        
+        .file-type-badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            margin-right: 5px;
+        }
+        
+        .verified-badge {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page 1: Index Page -->
+    <div class="legal-header">
+        <h2>IN THE COURT OF HON'BLE SESSION FOR GREATER</h2>
+        <h2>BOMBAY AT, MUMBAI</h2>
+        <h2>SPECIAL COURT FOR PMLA CASES</h2>
+    </div>
+    
+    <div class="case-details">
+        <strong>CRIMINAL APPLICATION/EXHIBIT NO. ______ OF 2025</strong><br>
+        IN <br>
+        SPECIAL CASE NO. ______ OF 2025
+    </div>
+    
+    <div class="parties">
+        <div class="party-line">
+            <strong>{{applicantFullName}}</strong> ……Applicant
+        </div>
+        
+        <div class="party-line" style="text-align: center;">
+            <strong>Versus</strong>
+        </div>
+        
+        <div class="party-line">
+            <strong>DNYANRADHA MULTISTATE CO-OPERATIVE CREDIT SOCIETY</strong> …ACCUSED
+        </div>
+        
+        <div class="party-line">
+            <strong>DIRECTORATE OF ENFORCEMENT</strong> … COMPLAINANT
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px;">
+        <h3 style="text-align: center; text-decoration: underline; margin-bottom: 20px;">INDEX</h3>
+        <table class="index-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%">SR NO</th>
+                    <th style="width: 50%">PARTICULARS</th>
+                    <th style="width: 20%">EXHIBITS NO</th>
+                    <th style="width: 20%">PAGE NO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>APPLICATION</td>
+                    <td></td>
+                    <td>2-4</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>FIXED DEPOSIT RECEIPT & DETAILS</td>
+                    <td></td>
+                    <td>5</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>EXHIBIT A - BANK ACCOUNT DOCUMENTS</td>
+                    <td>"A"</td>
+                    <td>6</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>EXHIBIT B - INVESTMENT AMOUNT DETAILS</td>
+                    <td>"B"</td>
+                    <td>7</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>EXHIBIT C - DEPOSIT PROOF DOCUMENTS</td>
+                    <td>"C"</td>
+                    <td>8</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>EXHIBIT D - LEGAL & COMPLIANCE DOCUMENTS</td>
+                    <td>"D"</td>
+                    <td>9</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>MEMORANDUM OF ADDRESS</td>
+                    <td></td>
+                    <td>10</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>AFFIDAVIT-IN-SUPPORT OF THE APPLICATION</td>
+                    <td></td>
+                    <td>10</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td>VAKALATNAMA</td>
+                    <td></td>
+                    <td>11</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="signature-section">
+        <div style="display: flex; justify-content: space-between;">
+            <div>
+                <strong>PLACE:</strong> MUMBAI
+            </div>
+            <div>
+                <strong>DATE:</strong> {{currentDate}}
+            </div>
+        </div>
+    </div>
+    
+    <div class="advocate-name">
+        ADVOCATE FOR THE APPLICANT<br><br>
+        _________________________<br>
+        (ADVOCATE NAME)
+    </div>
+
+    <div class="footer">
+        Page 1 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 2-4: Application (Same as before, shortened for brevity) -->
+    <div class="page-break"></div>
+    <!-- Application content remains the same as previous code -->
+    <div class="legal-header">
+        <h2>IN THE COURT OF HON'BLE SESSION FOR GREATER</h2>
+        <h2>BOMBAY AT, MUMBAI</h2>
+        <h2>SPECIAL COURT FOR PMLA CASES</h2>
+    </div>
+    
+    <div class="case-details">
+        <strong>CRIMINAL APPLICATION/EXHIBIT NO. ______ OF 2025</strong><br>
+        IN <br>
+        SPECIAL CASE NO. ______ OF 2025<br>
+        IN<br>
+        ECIR/MBZO-I/______/2025
+    </div>
+    
+    <div class="parties">
+        <div class="party-line">
+            <strong>{{applicantFullName}}</strong> ……Applicant
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <strong>Address:</strong> {{applicantAddress}}
+        </div>
+        
+        <div class="party-line" style="text-align: center;">
+            <strong>Versus</strong>
+        </div>
+        
+        <div class="party-line">
+            <strong>DNYANRADHA MULTISTATE CO-OPERATIVE CREDIT SOCIETY</strong> …ACCUSED
+        </div>
+        
+        <div class="party-line">
+            <strong>DIRECTORATE OF ENFORCEMENT</strong> … COMPLAINANT
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">APPLICATION UNDER SECTION 8(8) OF THE PREVENTION OF MONEY LAUNDERING ACT, 2002</div>
+        <!-- Application content shortened for this example -->
+        <div class="application-content">
+            <strong>MOST RESPECTFULLY SHOWETH:</strong><br><br>
+            1. The Applicant is a law-abiding citizen and is one of the innocent investors who had deposited their hard-earned money in the Dnyanradha Multi State Co-operative Credit Society Ltd.<br><br>
+            2. The Applicant has invested an aggregate amount of approximately {{totalDepositAmount}} ({{totalDepositAmountWords}}) which was to be repaid with {{interestRate}} interest.<br><br>
+            <!-- ... rest of application content ... -->
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 2 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 5: Fixed Deposit Receipt -->
+    <div class="page-break"></div>
+    
+    <div class="fd-receipt">
+        <div class="fd-header">
+            <h3>RECEIPT AND FIXED DEPOSIT SUMMARY</h3>
+            <div class="fd-info-row">
+                <div><strong>Receipt No:</strong> FD-{{savingAccountNumber}}-001</div>
+                <div><strong>Date of Issue:</strong> {{currentDate}}</div>
+            </div>
+        </div>
+        
+        <!-- Fixed deposit content same as before -->
+        <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 10px;">
+                <strong>Received with thanks from:</strong> <u>{{applicantFullName}}</u>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong>Address:</strong> {{applicantAddress}}
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong>Saving Account Number:</strong> <strong>{{savingAccountNumber}}</strong>
+            </div>
+            <div>
+                <strong>Branch:</strong> {{branchName}}
+            </div>
+        </div>
+        
+        <p>A total sum of <strong>Rupees {{totalDepositAmountWords}} ({{totalDepositAmount}})</strong> has been received.</p>
+        
+        <table class="fd-table">
+            <thead>
+                <tr>
+                    <th>Sr. No.</th>
+                    <th>FD Receipt No.</th>
+                    <th>Deposit Amount (₹)</th>
+                    <th>Deposit Date</th>
+                    <th>Maturity Date</th>
+                    <th>Maturity Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each fixedDeposits}}
+                <tr>
+                    <td>{{add @index 1}}</td>
+                    <td>{{this.fdr_number}}</td>
+                    <td>{{this.amount}}</td>
+                    <td>{{this.deposit_date}}</td>
+                    <td>{{this.maturity_date}}</td>
+                    <td>{{this.maturity_amount}}</td>
+                </tr>
+                {{/each}}
+                <tr class="fd-total-row">
+                    <td colspan="2"><strong>TOTAL</strong></td>
+                    <td><strong>₹{{totalDepositAmount}}</strong></td>
+                    <td></td>
+                    <td></td>
+                    <td><strong>₹{{totalMaturityAmount}}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="fd-amount-section">
+            <div style="text-align: center;">
+                <div style="font-size: 14px; color: #7f8c8d;">Total Maturity Amount Payable</div>
+                <div style="font-size: 20px; font-weight: bold; color: #27ae60; margin: 10px 0;">₹{{totalMaturityAmount}}</div>
+                <div style="font-size: 12px; color: #7f8c8d;">(In Words: {{totalMaturityAmountWords}})</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 5 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 6: EXHIBIT A -->
+    <div class="page-break"></div>
+    
+    <div class="exhibit-section">
+        <div class="exhibit-header">EXHIBIT A - BANK ACCOUNT DOCUMENTS</div>
+        <div class="exhibit-content">
+            <table class="document-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">Sr. No.</th>
+                        <th style="width: 40%">Document Description</th>
+                        <th style="width: 25%">File Details</th>
+                        <th style="width: 15%">Upload Date</th>
+                        <th style="width: 15%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each exhibitsA}}
+                    <tr class="document-row">
+                        <td>{{add @index 1}}</td>
+                        <td>
+                            <strong>{{this.exhibit}}</strong><br>
+                            <small>File: {{this.originalName}}</small>
+                        </td>
+                        <td>
+                            <div class="document-info">
+                                <span class="file-type-badge">PDF</span>
+                                {{formatFileSize this.size}}
+                            </div>
+                            <div class="document-info">
+                                <small>ID: {{this.id}}</small>
+                            </div>
+                        </td>
+                        <td>{{formatDate this.uploadedAt}}</td>
+                        <td>
+                            <span class="verified-badge">VERIFIED</span>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Description:</strong> This exhibit contains all bank account related documents including passbook copies and account opening slips that establish the banking relationship between the applicant and Dnyanradha Multistate Co-operative Credit Society.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 6 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 7: EXHIBIT B -->
+    <div class="page-break"></div>
+    
+    <div class="exhibit-section">
+        <div class="exhibit-header">EXHIBIT B - INVESTMENT AMOUNT DETAILS</div>
+        <div class="exhibit-content">
+            <table class="document-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">Sr. No.</th>
+                        <th style="width: 40%">Document Description</th>
+                        <th style="width: 25%">File Details</th>
+                        <th style="width: 15%">Upload Date</th>
+                        <th style="width: 15%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each exhibitsB}}
+                    <tr class="document-row">
+                        <td>{{add @index 1}}</td>
+                        <td>
+                            <strong>{{this.exhibit}}</strong><br>
+                            <small>File: {{this.originalName}}</small>
+                        </td>
+                        <td>
+                            <div class="document-info">
+                                <span class="file-type-badge">PDF</span>
+                                {{formatFileSize this.size}}
+                            </div>
+                            <div class="document-info">
+                                <small>ID: {{this.id}}</small>
+                            </div>
+                        </td>
+                        <td>{{formatDate this.uploadedAt}}</td>
+                        <td>
+                            <span class="verified-badge">VERIFIED</span>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Description:</strong> This exhibit contains detailed investment records including Fixed Deposit receipts, Saving Account statements, and Recurring Deposit details that prove the total investment amount of ₹7,00,000 made by the applicant.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 7 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 8: EXHIBIT C -->
+    <div class="page-break"></div>
+    
+    <div class="exhibit-section">
+        <div class="exhibit-header">EXHIBIT C - DEPOSIT PROOF DOCUMENTS</div>
+        <div class="exhibit-content">
+            <table class="document-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">Sr. No.</th>
+                        <th style="width: 40%">Document Description</th>
+                        <th style="width: 25%">File Details</th>
+                        <th style="width: 15%">Upload Date</th>
+                        <th style="width: 15%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each exhibitsC}}
+                    <tr class="document-row">
+                        <td>{{add @index 1}}</td>
+                        <td>
+                            <strong>{{this.exhibit}}</strong><br>
+                            <small>File: {{this.originalName}}</small>
+                        </td>
+                        <td>
+                            <div class="document-info">
+                                <span class="file-type-badge">PDF</span>
+                                {{formatFileSize this.size}}
+                            </div>
+                            <div class="document-info">
+                                <small>ID: {{this.id}}</small>
+                            </div>
+                        </td>
+                        <td>{{formatDate this.uploadedAt}}</td>
+                        <td>
+                            <span class="verified-badge">VERIFIED</span>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Description:</strong> This exhibit contains proof of deposits made by the applicant to Dnyanradha Multistate Co-operative Credit Society, establishing the financial transactions and the amount invested.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 8 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 9: EXHIBIT D -->
+    <div class="page-break"></div>
+    
+    <div class="exhibit-section">
+        <div class="exhibit-header">EXHIBIT D - LEGAL & COMPLIANCE DOCUMENTS</div>
+        <div class="exhibit-content">
+            <table class="document-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">Sr. No.</th>
+                        <th style="width: 40%">Document Description</th>
+                        <th style="width: 25%">File Details</th>
+                        <th style="width: 15%">Upload Date</th>
+                        <th style="width: 15%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each exhibitsD}}
+                    <tr class="document-row">
+                        <td>{{add @index 1}}</td>
+                        <td>
+                            <strong>{{this.exhibit}}</strong><br>
+                            <small>File: {{this.originalName}}</small>
+                        </td>
+                        <td>
+                            <div class="document-info">
+                                <span class="file-type-badge">PDF</span>
+                                {{formatFileSize this.size}}
+                            </div>
+                            <div class="document-info">
+                                <small>ID: {{this.id}}</small>
+                            </div>
+                        </td>
+                        <td>{{formatDate this.uploadedAt}}</td>
+                        <td>
+                            <span class="verified-badge">VERIFIED</span>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Description:</strong> This exhibit contains the statement submitted to Shrirampur Police Station under Section 161 of CrPC, which forms the legal basis for the current application and establishes the criminal complaint against the accused society.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 9 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 10: Additional Documents (Memorandum & Affidavit) -->
+    <div class="page-break"></div>
+    
+    <div class="section">
+        <div class="section-title">MEMORANDUM OF ADDRESS</div>
+        <div style="padding: 20px; border: 1px solid #000;">
+            <strong>{{applicantFullName}}</strong><br>
+            {{applicantAddress}}<br>
+            Mobile No: {{phoneNumber}}<br>
+            Email: {{email}}
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">AFFIDAVIT-IN-SUPPORT OF THE APPLICATION</div>
+        <div class="affidavit">
+            I, {{applicantFullName}}, aged about {{age}} years, Indian Inhabitant, residing at {{applicantAddress}}, the Applicant abovenamed, do hereby solemnly declare that what is stated in the foregoing Application is true to my own knowledge and I believe the same to be true.<br><br>
+            Solemnly declared at Mumbai on this {{currentDate}}
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 10 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+
+    <!-- Page 11: Vakalatnama -->
+    <div class="page-break"></div>
+    
+    <div class="section">
+        <div class="section-title">VAKALATNAMA</div>
+        <div class="vakalatnama">
+            I, {{applicantFullName}}, aged about {{age}} years, Indian Inhabitant, residing at {{applicantAddress}}, the Applicant abovenamed, do hereby appoint [Advocate Name], Advocate, to act, plead and appear on my behalf in the above matter.<br><br>
+            In witness whereof, I have set my hands to this writing on this {{currentDate}}
+        </div>
+        
+        <div style="margin-top: 100px; display: flex; justify-content: space-between;">
+            <div>
+                _________________________<br>
+                <strong>{{applicantFullName}}</strong><br>
+                (Applicant)
+            </div>
+            
+            <div style="text-align: right;">
+                _________________________<br>
+                <strong>[ADVOCATE NAME]</strong><br>
+                Advocate for the Applicant<br>
+                [Office Address]<br>
+                [Contact Details]
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Page 11 of {{totalPages}} | Generated on: {{generatedDate}}
+    </div>
+</body>
+</html>
+`;
+
+// Register Handlebars helpers
+Handlebars.registerHelper('formatDate', formatDate);
+Handlebars.registerHelper('formatCurrency', formatCurrency);
+Handlebars.registerHelper('formatPercentage', formatPercentage);
+Handlebars.registerHelper('formatFileSize', formatFileSize);
+Handlebars.registerHelper('add', (a, b) => a + b);
+
+const generateApplicationPDF = async (user_data, case_data, payment_data, documents, fixed_deposits) => {
+  try {
+    // Prepare data for template
+    const exhibitsData = documents;
+
+    const templateData = {
+      // Applicant Information
+      applicantFullName: user_data.full_name,
+      applicantAddress: user_data.address,
+      phoneNumber: user_data.phone_number,
+      email: user_data.email,
+      age: user_data.age,
+
+      // Case Information
+      accountStartDate: formatDate(case_data.saving_account_start_date),
+      totalDepositAmount: formatCurrency(case_data.fixed_deposit_total_amount),
+      totalDepositAmountWords: amountToWords(case_data.fixed_deposit_total_amount),
+      totalMaturityAmount: formatCurrency(case_data.saving_account_total_amount),
+      totalMaturityAmountWords: amountToWords(case_data.saving_account_total_amount),
+      interestRate: formatPercentage(case_data.interest_rate_fd),
+
+      // Bank Information
+      savingAccountNumber: case_data.saving_account_number,
+      branchName: case_data.branch,
+
+      // Fixed Deposits
+      fixedDeposits: fixed_deposits,
+
+      // Exhibits Data
+      exhibitsA: exhibitsData['Exhibit A'],
+      exhibitsB: exhibitsData['Exhibit B'],
+      exhibitsC: exhibitsData['Exhibit C'],
+      exhibitsD: exhibitsData['Exhibit D'],
+
+      // Dates
+      currentDate: new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
+      generatedDate: new Date().toLocaleString(),
+
+      // Page Information
+      totalPages: 11,
+    };
+
+    // Compile template
+    const template = Handlebars.compile(htmlTemplate);
+    const htmlContent = template(templateData);
+
+    // Launch puppeteer and generate PDF
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+
+    // Set the HTML content
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '40px',
+        right: '40px',
+        bottom: '40px',
+        left: '40px',
+      },
+    });
+
+    await browser.close();
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw error;
+  }
+};
+
+// Test function
+const testPDFGeneration = async () => {
+  try {
+    const pdfBuffer = await generateApplicationPDF();
+    fs.writeFileSync('court_application_with_exhibits.pdf', pdfBuffer);
+    console.log('Court Application PDF with exhibits generated successfully: court_application_with_exhibits.pdf');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+  }
+};
+
+// Run the test
+// testPDFGeneration();
+
+// Export for use in other files
+module.exports = { generateApplicationPDF };

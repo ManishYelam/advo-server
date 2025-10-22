@@ -4,7 +4,7 @@ const razorpay = require('../../Config/Setting/razorpay.config');
 const Payment = {
   createOrder: async (amount, currency = 'INR', receiptId = 'receipt#1') => {
     const options = {
-      amount: amount,
+      amount: amount * 100,
       currency,
       receipt: receiptId,
     };
