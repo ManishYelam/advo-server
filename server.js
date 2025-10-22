@@ -24,7 +24,7 @@ const DefineRoutes = () => {
   });
 
   // 📌 **Serve Uploaded Files**
-  app.use('/UPLOAD_DIR', authMiddleware, express.static('UPLOAD_DIR'));
+  app.use('/api/UPLOAD_DIR', authMiddleware, express.static('UPLOAD_DIR'));
 
   // 📌 **Serve APIs**
   app.use('/api', routes);
