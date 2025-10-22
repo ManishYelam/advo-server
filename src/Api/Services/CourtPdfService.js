@@ -146,22 +146,23 @@ class CourtPdfService {
     });
     yPosition -= 40;
 
-    // Table structure
-    this.drawTableStructure(page, yPosition);
+    // Table structure - PASS FONTS TO THE METHOD
+    this.drawTableStructure(page, fonts, yPosition);
     yPosition -= 25;
 
     // Table rows - will be updated later with page numbers
     const rows = this.getIndexRows(userData);
     rows.forEach(row => {
-      this.drawTableRow(page, fonts.normal, row, yPosition);
+      this.drawTableRow(page, fonts, row, yPosition);
       yPosition -= 20;
     });
 
-    // Footer
-    this.drawCoverFooter(page, fonts.normal, height);
+    // Footer - PASS FONTS TO THE METHOD
+    this.drawCoverFooter(page, fonts, height);
   }
 
-  drawTableStructure(page, yPosition) {
+  // ADD FONTS PARAMETER HERE
+  drawTableStructure(page, fonts, yPosition) {
     // Draw table borders
     page.drawLine({
       start: { x: this.margins.left, y: yPosition },
@@ -179,7 +180,7 @@ class CourtPdfService {
         x: headerXPositions[index],
         y: yPosition - 20,
         size: 10,
-        font: fonts.bold,
+        font: fonts.bold, // NOW fonts IS DEFINED
         color: rgb(0, 0, 0),
       });
     });
@@ -192,14 +193,15 @@ class CourtPdfService {
     });
   }
 
-  drawTableRow(page, font, row, yPosition) {
+  // ADD FONTS PARAMETER HERE
+  drawTableRow(page, fonts, row, yPosition) {
     const positions = [60, 120, 380, 480];
 
     page.drawText(row.sr, {
       x: positions[0],
       y: yPosition,
       size: 9,
-      font: font,
+      font: fonts.normal, // NOW fonts IS DEFINED
       color: rgb(0, 0, 0),
     });
 
@@ -207,7 +209,7 @@ class CourtPdfService {
       x: positions[1],
       y: yPosition,
       size: 9,
-      font: font,
+      font: fonts.normal,
       color: rgb(0, 0, 0),
       maxWidth: 250,
     });
@@ -216,7 +218,7 @@ class CourtPdfService {
       x: positions[2],
       y: yPosition,
       size: 9,
-      font: font,
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
 
@@ -224,7 +226,7 @@ class CourtPdfService {
       x: positions[3],
       y: yPosition,
       size: 9,
-      font: font,
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
   }
@@ -243,14 +245,15 @@ class CourtPdfService {
     ];
   }
 
-  drawCoverFooter(page, font, pageHeight) {
+  // ADD FONTS PARAMETER HERE
+  drawCoverFooter(page, fonts, pageHeight) {
     const footerY = this.margins.bottom + 40;
 
     page.drawText('PLACE: _______________________', {
       x: this.margins.left,
       y: footerY,
       size: 10,
-      font: font,
+      font: fonts.normal, // NOW fonts IS DEFINED
       color: rgb(0, 0, 0),
     });
 
@@ -258,7 +261,7 @@ class CourtPdfService {
       x: this.margins.left,
       y: footerY - 20,
       size: 10,
-      font: font,
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
 
@@ -266,7 +269,7 @@ class CourtPdfService {
       x: 350,
       y: footerY,
       size: 10,
-      font: font,
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
 
@@ -274,7 +277,7 @@ class CourtPdfService {
       x: 380,
       y: footerY - 20,
       size: 10,
-      font: font,
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
   }
@@ -601,18 +604,24 @@ class CourtPdfService {
 
   // Fast simplified version for testing
   async generateSimplifiedCourtDocument(userData, caseData) {
-    const pdfDoc = await PDFDocument.create();
-    const fonts = {
-      normal: await pdfDoc.embedFont(StandardFonts.TimesRoman),
-      bold: await pdfDoc.embedFont(StandardFonts.TimesRomanBold),
-      italic: await pdfDoc.embedFont(StandardFonts.TimesRomanItalic),
-    };
+    try {
+      const pdfDoc = await PDFDocument.create();
+      const fonts = {
+        normal: await pdfDoc.embedFont(StandardFonts.TimesRoman),
+        bold: await pdfDoc.embedFont(StandardFonts.TimesRomanBold),
+        italic: await pdfDoc.embedFont(StandardFonts.TimesRomanItalic),
+      };
 
-    const pageTracker = { currentPage: 1, sections: {} };
-    await this.createCoverPage(pdfDoc, fonts, userData, caseData, pageTracker);
+      const pageTracker = { currentPage: 1, sections: {} };
+      await this.createCoverPage(pdfDoc, fonts, userData, caseData, pageTracker);
 
-    const pdfBytes = await pdfDoc.save();
-    return pdfBytes;
+      const pdfBytes = await pdfDoc.save();
+      console.log('✅ Simplified court document generated successfully');
+      return pdfBytes;
+    } catch (error) {
+      console.error('❌ Error generating simplified court document:', error);
+      throw error;
+    }
   }
 }
 

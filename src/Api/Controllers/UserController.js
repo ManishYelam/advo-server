@@ -186,22 +186,9 @@ module.exports = {
             // Clean up temp documents folder
             const tempDocsFolder = path.join(userFolder, 'temp_documents');
             if (fs.existsSync(tempDocsFolder)) {
-              const tempFiles = fs.readdirSync(tempDocsFolder);
-              tempFiles.forEach(file => {
-                const filePath = path.join(tempDocsFolder, file);
-                try {
-                  fs.unlinkSync(filePath);
-                  console.log(`  ✅ Deleted previous temp document: ${file}`);
-                } catch (error) {
-                  console.error(`  ❌ Failed to delete ${file}:`, error.message);
-                }
-              });
-              // Remove empty temp_documents folder
-              try {
-                fs.rmdirSync(tempDocsFolder);
-              } catch (error) {
-                // Ignore if not empty
-              }
+              console.log(`  🗑️ Deleting entire temp_documents directory: ${tempDocsFolder}`);
+              fs.rmSync(tempDocsFolder, { recursive: true, force: true });
+              console.log(`  ✅ Successfully deleted temp_documents directory`);
             }
           }
         } catch (cleanupError) {
@@ -505,6 +492,11 @@ module.exports = {
         }
       }
 
+      // Capture user details for background email
+      const userEmail = user_data.email;
+      const userName = user_data.full_name;
+      const isLoginUser = !!req.user_info?.id;
+
       // 9. Clear any existing merge queue for this user before starting new one
       const existingJob = pdfMergeService.getJobStatus(userId);
       if (existingJob) {
@@ -529,7 +521,6 @@ module.exports = {
             const mergeResult = await pdfMergeService.mergeUserPDFs(userId);
             console.log(`✅ Background PDF merge completed:`, mergeResult);
 
-            // Save ONLY the merged PDF to database using your existing service
             if (mergeResult.success) {
               const saveResult = await userService.updateApplicationFilePath(userId, mergeResult.mergedFilePath, {
                 applicationId: saved.case?.id,
@@ -543,34 +534,37 @@ module.exports = {
               });
 
               if (saveResult.success) {
-                console.log(`💾 Merged PDF saved to database using updateApplicationFilePath`);
-                console.log(`📄 UserDocument ID: ${saveResult.userDocumentId}`);
+                console.log(`💾 Merged PDF saved to database`);
               } else {
                 console.error(`❌ Failed to save merged PDF:`, saveResult.error);
               }
 
-              // Clean up ALL temporary files after successful merge
+              // Send email with the FINAL merged PDF
+              try {
+                const finalPdfBuffer = fs.readFileSync(mergeResult.mergedFilePath);
+
+                // Determine registration link based on login status
+                let registrationLink = null;
+                if (!isLoginUser) {
+                  registrationLink = `${FRONTEND_URL}/applicant/${userId}`;
+                }
+
+                console.log(`📧 Sending email to: ${userEmail}`);
+
+                await sendApplicantRegEmail(userId, userName, userEmail, registrationLink, finalPdfBuffer);
+
+                console.log('✅ Email sent with final merged PDF');
+              } catch (emailError) {
+                console.error('❌ Error sending email with final PDF:', emailError);
+              }
+
+              // ✅ Clean up ONLY temp_documents folder after successful merge and email
               setTimeout(async () => {
                 try {
-                  const cleanupResult = await pdfMergeService.cleanupOriginalPDFs(userId);
-                  console.log(`🧹 Background PDF cleanup completed:`, cleanupResult);
-
-                  // Also clean up any remaining temporary files
-                  if (storedFiles.length > 0) {
-                    console.log('🧹 Cleaning up remaining temporary files...');
-                    storedFiles.forEach(filePath => {
-                      try {
-                        if (fs.existsSync(filePath) && !filePath.includes(mergeResult.mergedFilePath)) {
-                          fs.unlinkSync(filePath);
-                          console.log(`  ✅ Deleted temporary: ${path.basename(filePath)}`);
-                        }
-                      } catch (cleanupError) {
-                        console.error(`  ❌ Failed to delete ${filePath}:`, cleanupError.message);
-                      }
-                    });
-                  }
+                  const cleanupResult = await pdfMergeService.cleanupTempDocuments(userId);
+                  console.log(`🧹 temp_documents cleanup completed:`, cleanupResult);
                 } catch (cleanupError) {
-                  console.error(`❌ Background PDF cleanup failed:`, cleanupError);
+                  console.error(`❌ temp_documents cleanup failed:`, cleanupError);
                 }
               }, 3000);
             }
@@ -811,27 +805,13 @@ module.exports = {
           }
         });
 
-        // Clean up temp_documents folder
+        // ✅ OPTIMIZED: Delete entire temp_documents directory at once
         const tempDocsFolder = path.join(userFolder, 'temp_documents');
         if (fs.existsSync(tempDocsFolder)) {
-          const tempFiles = fs.readdirSync(tempDocsFolder);
-          tempFiles.forEach(file => {
-            try {
-              const filePath = path.join(tempDocsFolder, file);
-              fs.unlinkSync(filePath);
-              deletedCount++;
-              console.log(`  ✅ Deleted temp document: ${file}`);
-            } catch (error) {
-              errorCount++;
-              console.error(`  ❌ Failed to delete temp document ${file}:`, error.message);
-            }
-          });
-          // Remove empty folder
-          try {
-            fs.rmdirSync(tempDocsFolder);
-          } catch (error) {
-            // Ignore if not empty
-          }
+          console.log(`  🗑️ Deleting entire temp_documents directory`);
+          fs.rmSync(tempDocsFolder, { recursive: true, force: true });
+          console.log(`  ✅ Successfully deleted temp_documents directory`);
+          deletedCount++; // Count the directory deletion as one operation
         }
       }
 

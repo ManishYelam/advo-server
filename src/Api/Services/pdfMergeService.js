@@ -2,6 +2,7 @@ const { PDFDocument } = require('pdf-lib');
 const fs = require('fs').promises;
 const path = require('path');
 const fsSync = require('fs');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../..', 'UPLOAD_DIR');
 
 class PDFMergeService {
   constructor() {
@@ -117,46 +118,43 @@ class PDFMergeService {
     }
   }
 
-  // Clean up ALL original PDFs after merge (including temporary ones)
-  async cleanupOriginalPDFs(userId) {
-    const job = this.mergeQueue.get(userId);
-    if (!job || job.status !== 'completed') {
-      return { success: false, message: 'No completed merge job found' };
-    }
-
+  // Clean up ONLY the temp_documents folder after merge
+  async cleanupTempDocuments(userId) {
     try {
-      console.log(`🧹 Cleaning up ALL original PDFs for user ${userId}`);
-
+      const userFolder = path.join(UPLOAD_DIR, userId.toString());
       let deletedCount = 0;
-      let errorCount = 0;
 
-      for (const fileInfo of job.files) {
-        try {
-          if (fsSync.existsSync(fileInfo.filePath) && fileInfo.filePath !== job.mergedFilePath) {
-            await fs.unlink(fileInfo.filePath);
-            deletedCount++;
-            console.log(`  ✅ Deleted original: ${path.basename(fileInfo.filePath)}`);
-          }
-        } catch (deleteError) {
-          console.error(`  ❌ Failed to delete ${fileInfo.filePath}:`, deleteError.message);
-          errorCount++;
+      if (fsSync.existsSync(userFolder)) {
+        console.log(`🧹 Cleaning up ONLY temp_documents folder for user ${userId}`);
+
+        // ✅ ONLY delete the temp_documents directory (no individual files)
+        const tempDocsFolder = path.join(userFolder, 'temp_documents');
+        if (fsSync.existsSync(tempDocsFolder)) {
+          console.log(`  🗑️ Deleting temp_documents folder: ${tempDocsFolder}`);
+          fsSync.rmSync(tempDocsFolder, { recursive: true, force: true });
+          deletedCount++;
+          console.log(`  ✅ Successfully deleted temp_documents directory`);
+        } else {
+          console.log(`  ℹ️ temp_documents folder not found for user ${userId}`);
         }
+
+        // Preserve all other files:
+        // - temp_application_*.pdf (application form)
+        // - temp_court_document_*.pdf (court document) 
+        // - merged_court_document_*.pdf (final merged PDF)
+        // - All other files in user folder
+      } else {
+        console.log(`ℹ️ User folder not found: ${userFolder}`);
       }
 
-      // Remove job from queue after cleanup
-      this.mergeQueue.delete(userId);
-
-      console.log(`✅ Cleanup completed: ${deletedCount} deleted, ${errorCount} errors`);
-
-      return {
-        success: true,
+      return { 
+        success: true, 
         deletedCount,
-        errorCount,
-        mergedFilePath: job.mergedFilePath,
+        message: deletedCount > 0 ? 'temp_documents folder cleaned up' : 'No temp_documents folder found'
       };
     } catch (error) {
-      console.error(`❌ Cleanup failed for user ${userId}:`, error);
-      throw error;
+      console.error('❌ Error cleaning up temp_documents:', error);
+      return { success: false, error: error.message };
     }
   }
 
