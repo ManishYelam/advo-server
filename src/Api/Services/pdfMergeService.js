@@ -12,7 +12,7 @@ class PDFMergeService {
   // Add files to merge queue for a user
   async addToMergeQueue(userId, filesToMerge) {
     try {
-      console.log(`📄 Adding ${filesToMerge.length} files to merge queue for user ${userId}`);
+      // console.log(`📄 Adding ${filesToMerge.length} files to merge queue for user ${userId}`);
 
       this.mergeQueue.set(userId, {
         files: filesToMerge,
@@ -23,7 +23,7 @@ class PDFMergeService {
 
       return { success: true, message: 'Files added to merge queue' };
     } catch (error) {
-      console.error('❌ Error adding to merge queue:', error);
+      // console.error('❌ Error adding to merge queue:', error);
       throw error;
     }
   }
@@ -36,7 +36,7 @@ class PDFMergeService {
     }
 
     try {
-      console.log(`🔄 Starting PDF merge for user ${userId}`);
+      // console.log(`🔄 Starting PDF merge for user ${userId}`);
 
       job.status = 'processing';
       job.attempts += 1;
@@ -57,10 +57,10 @@ class PDFMergeService {
 
       for (const fileInfo of sortedFiles) {
         try {
-          console.log(`  📑 Processing: ${fileInfo.filePath}`);
+          // console.log(`  📑 Processing: ${fileInfo.filePath}`);
 
           if (!fsSync.existsSync(fileInfo.filePath)) {
-            console.warn(`  ⚠️ File not found: ${fileInfo.filePath}`);
+            // console.warn(`  ⚠️ File not found: ${fileInfo.filePath}`);
             continue;
           }
 
@@ -72,9 +72,9 @@ class PDFMergeService {
           totalPages += pdfDoc.getPageCount();
 
           mergedFilePaths.push(fileInfo.filePath);
-          console.log(`  ✅ Added: ${path.basename(fileInfo.filePath)} (${pdfDoc.getPageCount()} pages)`);
+          // console.log(`  ✅ Added: ${path.basename(fileInfo.filePath)} (${pdfDoc.getPageCount()} pages)`);
         } catch (fileError) {
-          console.error(`  ❌ Error processing ${fileInfo.filePath}:`, fileError.message);
+          // console.error(`  ❌ Error processing ${fileInfo.filePath}:`, fileError.message);
           // Continue with other files even if one fails
         }
       }
@@ -99,9 +99,9 @@ class PDFMergeService {
       job.totalPages = totalPages;
       job.mergedFilesCount = mergedFilePaths.length;
 
-      console.log(`✅ PDF merge completed for user ${userId}`);
-      console.log(`   📊 Merged ${job.mergedFilesCount} files into ${totalPages} pages`);
-      console.log(`   💾 Saved merged PDF to: ${mergedFilePath}`);
+      // console.log(`✅ PDF merge completed for user ${userId}`);
+      // console.log(`   📊 Merged ${job.mergedFilesCount} files into ${totalPages} pages`);
+      // console.log(`   💾 Saved merged PDF to: ${mergedFilePath}`);
 
       return {
         success: true,
@@ -111,7 +111,7 @@ class PDFMergeService {
         fileSize: mergedPdfBuffer.length,
       };
     } catch (error) {
-      console.error(`❌ PDF merge failed for user ${userId}:`, error);
+      // console.error(`❌ PDF merge failed for user ${userId}:`, error);
       job.status = 'failed';
       job.error = error.message;
       throw error;
@@ -125,35 +125,31 @@ class PDFMergeService {
       let deletedCount = 0;
 
       if (fsSync.existsSync(userFolder)) {
-        console.log(`🧹 Cleaning up ONLY temp_documents folder for user ${userId}`);
+        // console.log(`🧹 Cleaning up ONLY temp_documents folder for user ${userId}`);
 
         // ✅ ONLY delete the temp_documents directory (no individual files)
         const tempDocsFolder = path.join(userFolder, 'temp_documents');
         if (fsSync.existsSync(tempDocsFolder)) {
-          console.log(`  🗑️ Deleting temp_documents folder: ${tempDocsFolder}`);
+          // console.log(`  🗑️ Deleting temp_documents folder: ${tempDocsFolder}`);
           fsSync.rmSync(tempDocsFolder, { recursive: true, force: true });
           deletedCount++;
-          console.log(`  ✅ Successfully deleted temp_documents directory`);
+          // console.log(`  ✅ Successfully deleted temp_documents directory`);
         } else {
-          console.log(`  ℹ️ temp_documents folder not found for user ${userId}`);
+          // console.log(`  ℹ️ temp_documents folder not found for user ${userId}`);
         }
 
-        // Preserve all other files:
-        // - temp_application_*.pdf (application form)
-        // - temp_court_document_*.pdf (court document) 
-        // - merged_court_document_*.pdf (final merged PDF)
-        // - All other files in user folder
+        // Preserve all other files
       } else {
-        console.log(`ℹ️ User folder not found: ${userFolder}`);
+        // console.log(`ℹ️ User folder not found: ${userFolder}`);
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         deletedCount,
-        message: deletedCount > 0 ? 'temp_documents folder cleaned up' : 'No temp_documents folder found'
+        message: deletedCount > 0 ? 'temp_documents folder cleaned up' : 'No temp_documents folder found',
       };
     } catch (error) {
-      console.error('❌ Error cleaning up temp_documents:', error);
+      // console.error('❌ Error cleaning up temp_documents:', error);
       return { success: false, error: error.message };
     }
   }
@@ -172,7 +168,7 @@ class PDFMergeService {
     for (const [userId, job] of this.mergeQueue.entries()) {
       const jobAge = now - job.createdAt;
       if (jobAge > maxAge) {
-        console.log(`🧹 Removing old job for user ${userId} (age: ${Math.round(jobAge / 3600000)}h)`);
+        // console.log(`🧹 Removing old job for user ${userId} (age: ${Math.round(jobAge / 3600000)}h)`);
         this.mergeQueue.delete(userId);
       }
     }
