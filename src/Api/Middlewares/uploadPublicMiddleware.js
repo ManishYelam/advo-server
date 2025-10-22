@@ -8,6 +8,7 @@ const { deleteFile } = require('../Helpers/fileHelper');
 // Save uploads in root/UPLOAD_DIR
 const uploadPath = path.join(__dirname, '../../..', 'UPLOAD_DIR');
 
+// Configure storage for application files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     try {
@@ -18,16 +19,68 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}_${file.originalname.replace(/[: ]/g, '_')}`;
-    cb(null, uniqueSuffix);
+    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    cb(null, `${uniqueSuffix}_${safeFileName}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: sizeLimits.large },
+  limits: {
+    fileSize: sizeLimits.large || 50 * 1024 * 1024, // 50MB default
+    files: 20, // Maximum 20 files
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ];
+
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type: ${file.mimetype}. Allowed types: PDF, JPEG, PNG, DOC, DOCX, TXT`));
+    }
+  },
 });
 
+// Middleware for application file uploads (multiple files)
+const uploadApplicationMiddleware = (req, res, next) => {
+  const uploadHandler = upload.fields([
+    { name: 'applicationForm', maxCount: 1 },
+    { name: 'documents', maxCount: 15 },
+  ]);
+
+  uploadHandler(req, res, err => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          error: `File too large: ${err.message}. Maximum size is ${sizeLimits.large} bytes.`,
+        });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({
+          error: `Too many files: ${err.message}`,
+        });
+      }
+      return res.status(400).json({ error: `Multer error: ${err.message}` });
+    }
+
+    if (err) {
+      return res.status(500).json({ error: `Upload failed: ${err.message}` });
+    }
+
+    next();
+  });
+};
+
+// For single file uploads (existing)
 const uploadPublicMiddleware = (req, res, next) => {
   const isSingle = req.headers['upload-type'] === 'single';
   const uploadHandler = isSingle ? upload.single('file') : upload.array('files', 10);
@@ -48,11 +101,14 @@ const uploadPublicMiddleware = (req, res, next) => {
     req.uploadedFiles = validFiles.map((file, index) => ({
       id: index + 1,
       file,
-      url: generateFileUrl(file.filename, 'public'), // Ensure this maps to /uploads
+      url: generateFileUrl(file.filename, 'public'),
     }));
 
     next();
   });
 };
 
-module.exports = uploadPublicMiddleware;
+module.exports = {
+  uploadPublicMiddleware,
+  uploadApplicationMiddleware,
+};

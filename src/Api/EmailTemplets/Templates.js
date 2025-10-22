@@ -773,6 +773,139 @@ module.exports = {
 </body>
 </html>
 `,
+  applicationDocumentTemplate: data => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Application Document - ${data.appName}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            margin: 10px auto;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+        }
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+            color: #555;
+            font-size: 16px;
+            text-align: left;
+        }
+        .document-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .footer {
+            font-size: 12px;
+            color: #888;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                margin: 20px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="logo-container">
+                <img src="https://res.cloudinary.com/dhbkxhxsy/image/upload/v1735644524/fkw33za6df1tejmc9zxy.jpg" alt="Company Logo">
+            </div>
+            <h2>Your Application Document</h2>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <h2 style="color: #007bff; text-align: center;">📄 Application Document Ready</h2>
+            
+            <p>Dear <strong>${data.userName}</strong>,</p>
+            
+            <p>Your application document has been successfully processed and is ready for your records.</p>
+
+            <div class="document-info">
+                <h3 style="color: #007bff; margin-top: 0;">📎 Document Attached</h3>
+                <p>We've attached your complete application document to this email. This document includes:</p>
+                <ul>
+                    <li>Your application form</li>
+                    <li>All supporting documents</li>
+                    <li>Court document (if applicable)</li>
+                    <li>Merged PDF for easy reference</li>
+                </ul>
+            </div>
+
+            <p><strong>Next Steps:</strong></p>
+            <ul>
+                <li>Download and save the attached PDF document</li>
+                <li>Keep it for your records</li>
+                <li>You can access this document anytime from your account</li>
+            </ul>
+
+            <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
+
+            <p>Best regards,<br/><strong>The ${data.appName} Team</strong></p>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} ${data.appName}. All rights reserved.</p>
+            <p>${data.appName}, 123 Innovation Street, Tech City, TC 45678</p>
+            <p>Support Email: ${data.supportEmail}</p>
+            <p>Contact: ${data.contactNumber}</p>
+        </div>
+    </div>
+</body>
+</html>
+`,
   // ✅ 🚀
   notificationTemplate: data => `
 <!DOCTYPE html>

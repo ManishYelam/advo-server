@@ -98,14 +98,32 @@ const CaseService = {
   },
 
   // Get a single case by ID
-  getCaseById: async id => {
+  getCaseById: async (id) => {
     try {
       const caseData = await Cases.findOne({
         where: { id },
+        attributes: [],
+        include: [
+          {
+            model: Payment,
+            as: 'payments',
+            attributes: [],
+          },
+        ],
       });
-      if (!caseData) throw new Error('Case not found');
-      return caseData;
+      if (!caseData) {
+        return {
+          success: false,
+          message: '❌ Case not found.',
+        };
+      }
+      return {
+        success: true,
+        message: '✅ Case fetched successfully.',
+        data: caseData,
+      };
     } catch (error) {
+      console.error('❌ Error in caseService.getCaseById:', error.message);
       throw new Error('Error fetching case: ' + error.message);
     }
   },
