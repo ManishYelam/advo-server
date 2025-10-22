@@ -311,35 +311,40 @@ module.exports = {
       }
 
       // Add the new file path (convert to relative path if needed)
-      const relativeFilePath = filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/');
-      const updatedFilePaths = [...currentFilePaths, relativeFilePath];
+      const relativeFilePath = filePath ? filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/') : null;
+      const updatedFilePaths = filePath ? [...currentFilePaths, relativeFilePath] : currentFilePaths;
 
       await caseRecord.update({
         documents: updatedFilePaths,
         updatedAt: new Date(),
       });
 
-      // ✅ Step 3: Create UserDocument with full details
-      const userDocument = await UserDocument.create({
-        user_id: userId,
-        case_id: caseRecord.id,
-        document_type: documentType,
-        file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
-        file_path: filePath, // Store full path in UserDocument
-        file_size: fileSize,
-        mime_type: 'application/pdf',
-        description,
-        uploaded_by: userId,
-        is_active: true,
-        metadata: {
-          originalName: fileName,
-          uploadedAt: new Date().toISOString(),
-          documentVersion: '1.0',
-        },
-      });
+      // ✅ Step 3: Create UserDocument with full details (only if filePath exists)
+      let userDocument = null;
+      if (filePath) {
+        userDocument = await UserDocument.create({
+          user_id: userId,
+          case_id: caseRecord.id,
+          document_type: documentType,
+          file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
+          file_path: filePath, // Store full path in UserDocument
+          file_size: fileSize,
+          mime_type: 'application/pdf',
+          description,
+          uploaded_by: userId,
+          is_active: true,
+          metadata: {
+            originalName: fileName,
+            uploadedAt: new Date().toISOString(),
+            documentVersion: '1.0',
+            totalPages: options.totalPages || 0,
+            mergedFilesCount: options.mergedFilesCount || 0,
+          },
+        });
+      }
 
       // ✅ Step 4: Optionally update User table
-      if (updateUserRecord) {
+      if (updateUserRecord && filePath) {
         await User.update(
           {
             last_application_pdf: relativeFilePath, // Store relative path in User
@@ -349,20 +354,44 @@ module.exports = {
         );
       }
 
-      // console.log(`✅ Case updated for user ${userId}`);
-      // console.log(`✅ UserDocument created with ID: ${userDocument.id}`);
-      // console.log(`✅ File paths in case: ${updatedFilePaths.length}`);
+      console.log(`✅ Case updated for user ${userId}`);
+      if (userDocument) {
+        console.log(`✅ UserDocument created with ID: ${userDocument.id}`);
+      }
+      console.log(`✅ File paths in case: ${updatedFilePaths.length}`);
 
       return {
         success: true,
-        message: 'File path stored successfully',
+        message: filePath ? 'File path stored successfully' : 'Application saved without documents',
         caseId: caseRecord.id,
-        userDocumentId: userDocument.id,
+        userDocumentId: userDocument ? userDocument.id : null,
         documentsCount: updatedFilePaths.length,
       };
     } catch (error) {
       console.error('❌ Error updating application file path:', error);
       return { success: false, error: error.message };
+    }
+  },
+
+  getUserById: async userId => {
+    try {
+      // Your implementation to get user by ID
+      const user = await db.User.findByPk(userId);
+      return user;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      throw error;
+    }
+  },
+
+  getCaseByUserId: async userId => {
+    try {
+      // Your implementation to get case by user ID
+      const caseRecord = await db.Case.findOne({ where: { user_id: userId } });
+      return caseRecord;
+    } catch (error) {
+      console.error('Error getting case:', error);
+      throw error;
     }
   },
 };
