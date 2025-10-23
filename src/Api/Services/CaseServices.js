@@ -99,15 +99,15 @@ const CaseService = {
 
   // Get a single case by ID
   getCaseById: async (id) => {
-    try {
+    try {    
       const caseData = await Cases.findOne({
         where: { id },
-        attributes: [],
+        // attributes: [],
         include: [
           {
             model: Payment,
             as: 'payments',
-            attributes: [],
+            // attributes: [],
           },
         ],
       });

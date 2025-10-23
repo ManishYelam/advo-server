@@ -376,7 +376,7 @@ module.exports = {
   getUserById: async userId => {
     try {
       // Your implementation to get user by ID
-      const user = await db.User.findByPk(userId);
+      const user = await User.findByPk(userId);
       return user;
     } catch (error) {
       console.error('Error getting user:', error);
@@ -387,7 +387,7 @@ module.exports = {
   getCaseByUserId: async userId => {
     try {
       // Your implementation to get case by user ID
-      const caseRecord = await db.Case.findOne({ where: { user_id: userId } });
+      const caseRecord = await Cases.findOne({ where: { user_id: userId } });
       return caseRecord;
     } catch (error) {
       console.error('Error getting case:', error);
