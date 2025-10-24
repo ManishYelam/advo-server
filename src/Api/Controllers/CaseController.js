@@ -55,7 +55,7 @@ module.exports = {
   getCaseById: async (req, res) => {
     try {
       const { id } = req.params;
-      const caseData = await CaseService.getCaseById(id); // Get case by ID
+      const { caseData } = await CaseService.getCaseById(id); // Get case by ID
       return res.status(200).json({
         message: '✅ Case fetched successfully.',
         data: caseData,

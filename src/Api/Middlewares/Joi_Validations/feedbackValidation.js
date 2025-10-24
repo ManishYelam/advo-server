@@ -28,7 +28,7 @@ const feedbackValidation = {
 
   // Update feedback status validation
   updateStatus: Joi.object({
-    status: Joi.string().valid('pending', 'reviewed', 'resolved', 'closed').required().messages({
+    status: Joi.string().valid('pending', 'reviewed','in_progress', 'resolved', 'closed').required().messages({
       'string.base': 'Status must be a string',
       'any.only': 'Invalid status. Must be one of: pending, reviewed, resolved, closed',
       'any.required': 'Status is required',

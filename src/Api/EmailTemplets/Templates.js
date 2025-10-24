@@ -773,6 +773,7 @@ module.exports = {
 </body>
 </html>
 `,
+  // ✅ 🚀
   applicationDocumentTemplate: data => `
 <!DOCTYPE html>
 <html lang="en">
@@ -901,6 +902,213 @@ module.exports = {
             <p>${data.appName}, 123 Innovation Street, Tech City, TC 45678</p>
             <p>Support Email: ${data.supportEmail}</p>
             <p>Contact: ${data.contactNumber}</p>
+        </div>
+    </div>
+</body>
+</html>
+`,
+  // ✅ 🚀
+  updateApplicationTemplate: data => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Updated - ${data.appName}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .header {
+            background-color: #ffa500;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            margin: 10px auto;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+        }
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+            color: #555;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .update-details {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .update-details h3 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .changes-list {
+            text-align: left;
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        .changes-list li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #888;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                margin: 20px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="logo-container">
+                <img src="https://res.cloudinary.com/dhbkxhxsy/image/upload/v1735644524/fkw33za6df1tejmc9zxy.jpg" alt="Company Logo">
+            </div>
+            <h2>Application Successfully Updated</h2>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <h2 style="color: #ffa500;">✅ Update Confirmed, ${data.userName}!</h2>
+            <p>Your application with <strong>${data.appName}</strong> has been successfully updated and processed.</p>
+
+            <!-- Update Status -->
+            <div style="margin: 20px 0;">
+                <span class="status-badge">UPDATED</span>
+                <p><small>Updated on: ${data.updatedDate || new Date().toLocaleDateString()}</small></p>
+            </div>
+
+            <!-- Update Details Section -->
+            <div class="update-details">
+                <h3>📄 Application Details</h3>
+                <p><strong>Application ID:</strong> ${data.applicationId || 'N/A'}</p>
+                <p><strong>Reference Number:</strong> ${data.referenceNumber || 'N/A'}</p>
+                <p><strong>Current Status:</strong> ${data.status || 'Updated'}</p>
+                
+                ${
+                  data.changesMade
+                    ? `
+                <h3>🔄 Changes Made</h3>
+                <ul class="changes-list">
+                    ${data.changesMade.map(change => `<li>${change}</li>`).join('')}
+                </ul>
+                `
+                    : ''
+                }
+                
+                ${
+                  data.nextSteps
+                    ? `
+                <h3>📋 Next Steps</h3>
+                <p>${data.nextSteps}</p>
+                `
+                    : ''
+                }
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin: 25px 0;">
+                <p>Review your updated application details:</p>
+                <a href="${data.reg_link}" class="btn">View Updated Application</a>
+                
+                ${
+                  data.dashboardLink
+                    ? `
+                <br>
+                <a href="${data.dashboardLink}" style="color: #007bff; text-decoration: none; margin-left: 15px;">
+                    Go to Dashboard
+                </a>
+                `
+                    : ''
+                }
+            </div>
+
+            <!-- Important Notes -->
+            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 20px 0; text-align: left;">
+                <h4 style="color: #856404; margin-top: 0;">📌 Important Notes</h4>
+                <ul style="color: #856404; padding-left: 20px; margin-bottom: 0;">
+                    <li>Please verify all updated information is correct</li>
+                    <li>Keep this email for your records</li>
+                    <li>Contact support if you notice any discrepancies</li>
+                    <li>Your application will now proceed with the updated information</li>
+                </ul>
+            </div>
+
+            <p>We appreciate you keeping your information up to date with us! 📝</p>
+            <p>Best regards,<br/><strong>The ${data.appName} Team</strong></p>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} ${data.appName}. All rights reserved.</p>
+            <p>${data.appName}, 123 Innovation Street, Tech City, TC 45678</p>
+            <p>Support Email: ${data.supportEmail} | Contact: ${data.contactNumber}</p>
+            <p><small>This is an automated message. Please do not reply to this email.</small></p>
         </div>
     </div>
 </body>
