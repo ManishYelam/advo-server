@@ -35,7 +35,7 @@ const Feedback = sequelize.MAIN_DB_NAME.define(
       },
     },
     status: {
-      type: DataTypes.ENUM('pending', 'reviewed','in_progress', 'resolved', 'closed'),
+      type: DataTypes.ENUM('pending', 'reviewed', 'in_progress', 'resolved', 'closed'),
       defaultValue: 'pending',
     },
     user_agent: {

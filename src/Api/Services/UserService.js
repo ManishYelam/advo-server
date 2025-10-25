@@ -243,7 +243,7 @@ module.exports = {
         Object.assign(user_data, {
           otp,
           expiryTime,
-          is_verified: false // Mark as unverified since OTP needs to be verified
+          is_verified: false, // Mark as unverified since OTP needs to be verified
         });
         if (user_data.password) {
           user_data.password = await hashPassword(user_data.password);
@@ -262,7 +262,7 @@ module.exports = {
         user,
         case: caseData,
         payment: paymentData,
-        isNewUser: !user.is_verified // Indicate if this is a new user that needs OTP verification
+        isNewUser: !user.is_verified, // Indicate if this is a new user that needs OTP verification
       };
     } catch (error) {
       console.error(error.message);
