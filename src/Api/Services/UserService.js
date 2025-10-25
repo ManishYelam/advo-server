@@ -49,7 +49,7 @@ module.exports = {
       user.password = password;
       await user.save();
 
-      const userName = `${user.first_name} ${user.last_name}`;
+      const userName = `${user.full_name}`;
       await sendVerificationEmail(userName, user.email, generate_password);
 
       return user;
@@ -237,6 +237,14 @@ module.exports = {
         const hashedPassword = user_data.password ? await hashPassword(user_data.password) : user.password;
         await user.update({ ...user_data, password: hashedPassword }, { transaction: t });
       } else {
+        // Generate OTP when email doesn't exist
+        const { otp, expiryTime } = generateOTPTimestamped(10, 3600000, true);
+        // Add OTP to user_data
+        Object.assign(user_data, {
+          otp,
+          expiryTime,
+          is_verified: false // Mark as unverified since OTP needs to be verified
+        });
         if (user_data.password) {
           user_data.password = await hashPassword(user_data.password);
         }
@@ -249,7 +257,13 @@ module.exports = {
 
       await t.commit();
 
-      return { success: true, user, case: caseData, payment: paymentData };
+      return {
+        success: true,
+        user,
+        case: caseData,
+        payment: paymentData,
+        isNewUser: !user.is_verified // Indicate if this is a new user that needs OTP verification
+      };
     } catch (error) {
       console.error(error.message);
       await t.rollback();

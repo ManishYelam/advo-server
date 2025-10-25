@@ -98,8 +98,8 @@ const CaseService = {
   },
 
   // Get a single case by ID
-  getCaseById: async (id) => {
-    try {    
+  getCaseById: async id => {
+    try {
       const caseData = await Cases.findOne({
         where: { id },
         // attributes: [],
@@ -117,11 +117,7 @@ const CaseService = {
           message: '❌ Case not found.',
         };
       }
-      return {
-        success: true,
-        message: '✅ Case fetched successfully.',
-        data: caseData,
-      };
+      return { caseData };
     } catch (error) {
       console.error('❌ Error in caseService.getCaseById:', error.message);
       throw new Error('Error fetching case: ' + error.message);
