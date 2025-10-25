@@ -34,6 +34,7 @@ class CourtPdfService {
 
       // Create cover page first (will be page 1)
       await this.createCoverPage(pdfDoc, fonts, userData, caseData, pageTracker);
+      pageTracker.currentPage = pdfDoc.getPageCount();
 
       // Add application document
       pageTracker.sections.application = pageTracker.currentPage + 1;
@@ -80,12 +81,13 @@ class CourtPdfService {
 
     let yPosition = height - this.margins.top;
 
-    // Court header - optimized drawing
+    // Court header - CENTER ALIGNED
     const headerLines = [this.courtDetails.courtName, this.courtDetails.specialCourt];
 
     headerLines.forEach((line, index) => {
+      const textWidth = this.safeTextWidth(fonts.bold, line, 12);
       page.drawText(line, {
-        x: this.margins.left,
+        x: (width - textWidth) / 2,
         y: yPosition - index * 30,
         size: 12,
         font: fonts.bold,
@@ -95,7 +97,7 @@ class CourtPdfService {
 
     yPosition -= 100;
 
-    // Case numbers
+    // Case numbers - CENTER ALIGNED
     const caseLines = [
       `CRIMINAL APPLICATION/EXHIBIT NO. OF ${this.courtDetails.year}`,
       'IN',
@@ -103,18 +105,19 @@ class CourtPdfService {
     ];
 
     caseLines.forEach((line, index) => {
+      const textWidth = this.safeTextWidth(fonts.normal, line, 11);
       page.drawText(line, {
-        x: this.margins.left,
-        y: yPosition - index * 20,
+        x: (width - textWidth) / 2,
+        y: yPosition - index * 25,
         size: 11,
         font: fonts.normal,
         color: rgb(0, 0, 0),
       });
     });
 
-    yPosition -= 80;
+    yPosition -= 90;
 
-    // Parties section
+    // Parties section - PROPER ALIGNMENT
     const applicantName = userData.full_name || 'APPLICANT NAME';
     const partyLines = [
       `(${applicantName})……APPLICANT`,
@@ -125,20 +128,24 @@ class CourtPdfService {
 
     partyLines.forEach((line, index) => {
       const isVersus = line === 'VERSUS';
+      const textWidth = isVersus ? this.safeTextWidth(fonts.bold, line, 12) : this.safeTextWidth(fonts.normal, line, 11);
+
       page.drawText(line, {
-        x: isVersus ? 270 : this.margins.left,
-        y: yPosition - index * 20,
+        x: isVersus ? (width - textWidth) / 2 : this.margins.left,
+        y: yPosition - index * 22,
         size: isVersus ? 12 : 11,
         font: isVersus ? fonts.bold : fonts.normal,
         color: rgb(0, 0, 0),
       });
     });
 
-    yPosition -= 80;
+    yPosition -= 100;
 
-    // INDEX Table
-    page.drawText('INDEX', {
-      x: 270,
+    // INDEX Table - CENTERED
+    const indexText = 'INDEX';
+    const indexTextWidth = this.safeTextWidth(fonts.bold, indexText, 14);
+    page.drawText(indexText, {
+      x: (width - indexTextWidth) / 2,
       y: yPosition,
       size: 14,
       font: fonts.bold,
@@ -146,65 +153,87 @@ class CourtPdfService {
     });
     yPosition -= 40;
 
-    // Table structure - PASS FONTS TO THE METHOD
-    this.drawTableStructure(page, fonts, yPosition);
+    // Table structure
+    this.drawTableStructure(page, fonts, yPosition, width);
     yPosition -= 25;
 
     // Table rows - will be updated later with page numbers
     const rows = this.getIndexRows(userData);
     rows.forEach(row => {
-      this.drawTableRow(page, fonts, row, yPosition);
+      this.drawTableRow(page, fonts, row, yPosition, width);
       yPosition -= 20;
     });
 
-    // Footer - PASS FONTS TO THE METHOD
-    this.drawCoverFooter(page, fonts, height);
+    // Footer - PROPER ALIGNMENT
+    this.drawCoverFooter(page, fonts, height, width);
   }
 
-  // ADD FONTS PARAMETER HERE
-  drawTableStructure(page, fonts, yPosition) {
+  // SAFE TEXT WIDTH CALCULATION - HANDLES NEWLINE CHARACTERS
+  safeTextWidth(font, text, size) {
+    if (!text || text === '') return 0;
+    // Remove any newline characters and trim the text
+    const cleanText = text.replace(/[\n\r]/g, '').trim();
+    if (cleanText === '') return 0;
+    return font.widthOfTextAtSize(cleanText, size);
+  }
+
+  drawTableStructure(page, fonts, yPosition, width) {
+    const tableLeft = 50;
+    const tableRight = width - 50;
+
     // Draw table borders
     page.drawLine({
-      start: { x: this.margins.left, y: yPosition },
-      end: { x: 545, y: yPosition },
+      start: { x: tableLeft, y: yPosition },
+      end: { x: tableRight, y: yPosition },
       thickness: 1,
       color: rgb(0, 0, 0),
     });
 
-    // Table headers
+    // Table headers with PROPER COLUMN WIDTHS
     const headers = ['SR NO', 'PARTICULARS', 'EXHIBITS NO', 'PAGE NO'];
-    const headerXPositions = [60, 120, 380, 480];
+    const headerXPositions = [60, 120, 400, 500];
 
     headers.forEach((header, index) => {
+      const textWidth = this.safeTextWidth(fonts.bold, header, 10);
+      let xPos = headerXPositions[index];
+
+      // Center align PAGE NO header
+      if (index === 3) {
+        xPos = headerXPositions[index] - textWidth / 2;
+      }
+
       page.drawText(header, {
-        x: headerXPositions[index],
+        x: xPos,
         y: yPosition - 20,
         size: 10,
-        font: fonts.bold, // NOW fonts IS DEFINED
+        font: fonts.bold,
         color: rgb(0, 0, 0),
       });
     });
 
+    // Bottom border of header
     page.drawLine({
-      start: { x: this.margins.left, y: yPosition - 40 },
-      end: { x: 545, y: yPosition - 40 },
+      start: { x: tableLeft, y: yPosition - 40 },
+      end: { x: tableRight, y: yPosition - 40 },
       thickness: 1,
       color: rgb(0, 0, 0),
     });
   }
 
-  // ADD FONTS PARAMETER HERE
-  drawTableRow(page, fonts, row, yPosition) {
-    const positions = [60, 120, 380, 480];
+  drawTableRow(page, fonts, row, yPosition, width) {
+    const positions = [60, 120, 400, 500];
 
+    // SR NO - Center aligned
+    const srNoWidth = this.safeTextWidth(fonts.normal, row.sr, 9);
     page.drawText(row.sr, {
-      x: positions[0],
+      x: positions[0] - srNoWidth / 2 + 5,
       y: yPosition,
       size: 9,
-      font: fonts.normal, // NOW fonts IS DEFINED
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
 
+    // PARTICULARS - Left aligned
     page.drawText(row.particulars, {
       x: positions[1],
       y: yPosition,
@@ -214,21 +243,29 @@ class CourtPdfService {
       maxWidth: 250,
     });
 
-    page.drawText(row.exhibit, {
-      x: positions[2],
-      y: yPosition,
-      size: 9,
-      font: fonts.normal,
-      color: rgb(0, 0, 0),
-    });
+    // EXHIBITS NO - Center aligned
+    if (row.exhibit) {
+      const exhibitWidth = this.safeTextWidth(fonts.normal, row.exhibit, 9);
+      page.drawText(row.exhibit, {
+        x: positions[2] - exhibitWidth / 2 + 10,
+        y: yPosition,
+        size: 9,
+        font: fonts.normal,
+        color: rgb(0, 0, 0),
+      });
+    }
 
-    page.drawText(row.page, {
-      x: positions[3],
-      y: yPosition,
-      size: 9,
-      font: fonts.normal,
-      color: rgb(0, 0, 0),
-    });
+    // PAGE NO - Center aligned (will be filled later)
+    if (row.page) {
+      const pageWidth = this.safeTextWidth(fonts.normal, row.page, 9);
+      page.drawText(row.page, {
+        x: positions[3] - pageWidth / 2 + 5,
+        y: yPosition,
+        size: 9,
+        font: fonts.normal,
+        color: rgb(0, 0, 0),
+      });
+    }
   }
 
   getIndexRows(userData) {
@@ -239,25 +276,26 @@ class CourtPdfService {
       { sr: '3', particulars: 'Copy of the slip of Account started on 17.11.2022', exhibit: '"A"', page: '' },
       { sr: '4', particulars: 'Copy of the Deposits Amount by Applicant to the "said bank"', exhibit: '"B"', page: '' },
       { sr: '5', particulars: 'Copy of the statement by Applicant to Shrirampur Police Station', exhibit: '"C"', page: '' },
-      { sr: '6', particulars: 'Memorandum of Address', exhibit: '', page: '' },
-      { sr: '7', particulars: 'Affidavit-in-Support of the Application', exhibit: '', page: '' },
-      { sr: '8', particulars: 'Vakalatnama', exhibit: '', page: '' },
+      { sr: '6', particulars: 'Additional Supporting Documents', exhibit: '"D"', page: '' },
+      { sr: '7', particulars: 'Memorandum of Address', exhibit: '', page: '' },
+      { sr: '8', particulars: 'Affidavit-in-Support of the Application', exhibit: '', page: '' },
+      { sr: '9', particulars: 'Vakalatnama', exhibit: '', page: '' },
     ];
   }
 
-  // ADD FONTS PARAMETER HERE
-  drawCoverFooter(page, fonts, pageHeight) {
+  drawCoverFooter(page, fonts, pageHeight, width) {
     const footerY = this.margins.bottom + 40;
 
+    // Left side - PLACE and DATE
     page.drawText('PLACE: _______________________', {
       x: this.margins.left,
       y: footerY,
       size: 10,
-      font: fonts.normal, // NOW fonts IS DEFINED
+      font: fonts.normal,
       color: rgb(0, 0, 0),
     });
 
-    page.drawText('DATE: TODAY', {
+    page.drawText('DATE: _______________________', {
       x: this.margins.left,
       y: footerY - 20,
       size: 10,
@@ -265,16 +303,21 @@ class CourtPdfService {
       color: rgb(0, 0, 0),
     });
 
-    page.drawText('ADVOCATE FOR THE APPLICANT', {
-      x: 350,
+    // Right side - ADVOCATE
+    const advocateText = 'ADVOCATE FOR THE APPLICANT';
+    const advocateWidth = this.safeTextWidth(fonts.normal, advocateText, 10);
+    page.drawText(advocateText, {
+      x: width - advocateWidth - this.margins.right,
       y: footerY,
       size: 10,
       font: fonts.normal,
       color: rgb(0, 0, 0),
     });
 
-    page.drawText('(ADVOCATE NAME)', {
-      x: 380,
+    const advocateName = '(ADVOCATE NAME)';
+    const advocateNameWidth = this.safeTextWidth(fonts.normal, advocateName, 10);
+    page.drawText(advocateName, {
+      x: width - advocateNameWidth - this.margins.right,
       y: footerY - 20,
       size: 10,
       font: fonts.normal,
@@ -295,17 +338,26 @@ class CourtPdfService {
       exhibitA: 3,
       exhibitB: 4,
       exhibitC: 5,
-      memorandum: 6,
-      affidavit: 7,
-      vakalatnama: 8,
+      exhibitD: 6,
+      memorandum: 7,
+      affidavit: 8,
+      vakalatnama: 9,
     };
+
+    // Calculate Y positions for page numbers - ADJUSTED FOR BETTER ALIGNMENT
+    const startY = 485;
+    const rowHeight = 20;
 
     // Update page numbers on cover page
     Object.entries(sectionMapping).forEach(([section, rowIndex]) => {
       if (pageTracker.sections[section]) {
-        const yPosition = 500 - rowIndex * 20; // Adjust based on your layout
-        coverPage.drawText(pageTracker.sections[section].toString(), {
-          x: 480,
+        const yPosition = startY - (rowIndex - 1) * rowHeight;
+        const pageNum = pageTracker.sections[section].toString();
+        const pageNumWidth = this.safeTextWidth(fonts.normal, pageNum, 9);
+
+        // Center align page numbers in the PAGE NO column
+        coverPage.drawText(pageNum, {
+          x: 500 - pageNumWidth / 2 + 5,
           y: yPosition,
           size: 9,
           font: fonts.normal,
@@ -317,10 +369,14 @@ class CourtPdfService {
 
   async createListOfDocumentsPage(pdfDoc, fonts) {
     const page = pdfDoc.addPage(this.pageSize);
-    let yPosition = 800;
+    const { width, height } = page.getSize();
+    let yPosition = height - 100;
 
-    page.drawText('LIST OF DOCUMENTS', {
-      x: 220,
+    // Center align title
+    const title = 'LIST OF DOCUMENTS';
+    const titleWidth = this.safeTextWidth(fonts.bold, title, 14);
+    page.drawText(title, {
+      x: (width - titleWidth) / 2,
       y: yPosition,
       size: 14,
       font: fonts.bold,
@@ -335,13 +391,15 @@ class CourtPdfService {
       '4. Bank Account Details',
       '5. Deposit Proof Documents',
       '6. Police Station Statement Copy',
-      '7. Affidavit',
-      '8. Vakalatnama',
+      '7. Additional Supporting Documents',
+      '8. Affidavit',
+      '9. Vakalatnama',
     ];
 
+    // Left align documents with proper indentation
     documents.forEach(doc => {
       page.drawText(doc, {
-        x: 100,
+        x: 80,
         y: yPosition,
         size: 12,
         font: fonts.normal,
@@ -353,10 +411,14 @@ class CourtPdfService {
 
   async createMemorandumPage(pdfDoc, fonts, userData) {
     const page = pdfDoc.addPage(this.pageSize);
-    let yPosition = 800;
+    const { width, height } = page.getSize();
+    let yPosition = height - 100;
 
-    page.drawText('MEMORANDUM OF ADDRESS', {
-      x: 200,
+    // Center align title
+    const title = 'MEMORANDUM OF ADDRESS';
+    const titleWidth = this.safeTextWidth(fonts.bold, title, 14);
+    page.drawText(title, {
+      x: (width - titleWidth) / 2,
       y: yPosition,
       size: 14,
       font: fonts.bold,
@@ -365,26 +427,39 @@ class CourtPdfService {
     yPosition -= 60;
 
     const address = userData.address || 'Address not provided';
-    const lines = this.splitTextIntoLines(address, 80);
+    // Clean the address and split into lines
+    const cleanAddress = address.replace(/[\n\r]/g, ' ').trim();
+    const lines = this.splitTextIntoLines(cleanAddress, 60);
 
+    // Center align address lines - USE SIMPLE CENTERING WITHOUT widthOfTextAtSize
     lines.forEach(line => {
-      page.drawText(line, {
-        x: 100,
-        y: yPosition,
-        size: 12,
-        font: fonts.normal,
-        color: rgb(0, 0, 0),
-      });
+      if (line && line.trim() !== '') {
+        // Simple centering without width calculation for address lines
+        const estimatedWidth = line.length * 7; // Rough estimate
+        const xPos = Math.max(50, (width - estimatedWidth) / 2);
+        page.drawText(line, {
+          x: xPos,
+          y: yPosition,
+          size: 12,
+          font: fonts.normal,
+          color: rgb(0, 0, 0),
+          maxWidth: width - 100,
+        });
+      }
       yPosition -= 25;
     });
   }
 
   async createAffidavitPage(pdfDoc, fonts, userData) {
     const page = pdfDoc.addPage(this.pageSize);
-    let yPosition = 800;
+    const { width, height } = page.getSize();
+    let yPosition = height - 80;
 
-    page.drawText('AFFIDAVIT-IN-SUPPORT OF THE APPLICATION', {
-      x: 150,
+    // Center align title
+    const title = 'AFFIDAVIT-IN-SUPPORT OF THE APPLICATION';
+    const titleWidth = this.safeTextWidth(fonts.bold, title, 14);
+    page.drawText(title, {
+      x: (width - titleWidth) / 2,
       y: yPosition,
       size: 14,
       font: fonts.bold,
@@ -394,16 +469,21 @@ class CourtPdfService {
 
     const affidavitText = this.getAffidavitText(userData);
 
+    // Justified text with proper margins
     affidavitText.forEach(line => {
-      page.drawText(line, {
-        x: 50,
-        y: yPosition,
-        size: 11,
-        font: fonts.normal,
-        color: rgb(0, 0, 0),
-        maxWidth: 500,
-      });
-      yPosition -= line === '' ? 15 : 20;
+      if (line === '') {
+        yPosition -= 15;
+      } else {
+        page.drawText(line, {
+          x: 50,
+          y: yPosition,
+          size: 11,
+          font: fonts.normal,
+          color: rgb(0, 0, 0),
+          maxWidth: width - 100,
+        });
+        yPosition -= 20;
+      }
     });
   }
 
@@ -428,10 +508,14 @@ class CourtPdfService {
 
   async createVakalatnamaPage(pdfDoc, fonts, userData) {
     const page = pdfDoc.addPage(this.pageSize);
-    let yPosition = 800;
+    const { width, height } = page.getSize();
+    let yPosition = height - 80;
 
-    page.drawText('VAKALATNAMA', {
-      x: 250,
+    // Center align title
+    const title = 'VAKALATNAMA';
+    const titleWidth = this.safeTextWidth(fonts.bold, title, 14);
+    page.drawText(title, {
+      x: (width - titleWidth) / 2,
       y: yPosition,
       size: 14,
       font: fonts.bold,
@@ -441,16 +525,21 @@ class CourtPdfService {
 
     const vakalatnamaText = this.getVakalatnamaText(userData);
 
+    // Justified text with proper margins
     vakalatnamaText.forEach(line => {
-      page.drawText(line, {
-        x: 50,
-        y: yPosition,
-        size: 11,
-        font: fonts.normal,
-        color: rgb(0, 0, 0),
-        maxWidth: 500,
-      });
-      yPosition -= line === '' ? 15 : 18;
+      if (line === '') {
+        yPosition -= 12;
+      } else {
+        page.drawText(line, {
+          x: 50,
+          y: yPosition,
+          size: 11,
+          font: fonts.normal,
+          color: rgb(0, 0, 0),
+          maxWidth: width - 100,
+        });
+        yPosition -= 18;
+      }
     });
   }
 
@@ -496,9 +585,14 @@ class CourtPdfService {
     try {
       // Add application heading
       const headingPage = pdfDoc.addPage(this.pageSize);
-      headingPage.drawText('APPLICATION', {
-        x: 250,
-        y: 800,
+      const { width, height } = headingPage.getSize();
+
+      // Center align title
+      const title = 'APPLICATION';
+      const titleWidth = this.safeTextWidth(fonts.bold, title, 14);
+      headingPage.drawText(title, {
+        x: (width - titleWidth) / 2,
+        y: height - 100,
         size: 14,
         font: fonts.bold,
         color: rgb(0, 0, 0),
@@ -516,16 +610,25 @@ class CourtPdfService {
 
   createPlaceholderApplicationPage(pdfDoc, fonts) {
     const page = pdfDoc.addPage(this.pageSize);
-    page.drawText('APPLICATION', {
-      x: 250,
-      y: 800,
+    const { width, height } = page.getSize();
+
+    // Center align title
+    const title = 'APPLICATION';
+    const titleWidth = this.safeTextWidth(fonts.bold, title, 14);
+    page.drawText(title, {
+      x: (width - titleWidth) / 2,
+      y: height - 100,
       size: 14,
       font: fonts.bold,
       color: rgb(0, 0, 0),
     });
-    page.drawText('Application document will be attached here.', {
-      x: 150,
-      y: 700,
+
+    // Center align placeholder text
+    const placeholder = 'Application document will be attached here.';
+    const placeholderWidth = this.safeTextWidth(fonts.normal, placeholder, 12);
+    page.drawText(placeholder, {
+      x: (width - placeholderWidth) / 2,
+      y: height - 200,
       size: 12,
       font: fonts.normal,
       color: rgb(0, 0, 0),
@@ -539,6 +642,7 @@ class CourtPdfService {
       { id: 'A', title: 'EXHIBIT A', description: 'Copy of the slip of Account started on 17.11.2022' },
       { id: 'B', title: 'EXHIBIT B', description: 'Copy of the Deposits Amount by Applicant to the "said bank"' },
       { id: 'C', title: 'EXHIBIT C', description: 'Copy of the statement by Applicant to Shrirampur Police Station' },
+      { id: 'D', title: 'EXHIBIT D', description: 'Additional Supporting Documents' },
     ];
 
     for (const exhibit of exhibits) {
@@ -547,23 +651,33 @@ class CourtPdfService {
       if (exhibitFiles.length > 0) {
         pageTracker.sections[`exhibit${exhibit.id}`] = pdfDoc.getPageCount() + 1;
         await this.addExhibitSection(pdfDoc, fonts, exhibit, exhibitFiles);
+      } else {
+        // If no files for this exhibit, still create placeholder
+        pageTracker.sections[`exhibit${exhibit.id}`] = pdfDoc.getPageCount() + 1;
+        await this.createExhibitPlaceholder(pdfDoc, fonts, exhibit);
       }
     }
   }
 
   async addExhibitSection(pdfDoc, fonts, exhibit, exhibitFiles) {
-    // Add exhibit heading page
-    const headingPage = pdfDoc.addPage(this.pageSize);
-    headingPage.drawText(exhibit.title, {
-      x: 250,
-      y: 800,
+    const page = pdfDoc.addPage(this.pageSize);
+    const { width, height } = page.getSize();
+
+    // Center align exhibit title
+    const titleWidth = this.safeTextWidth(fonts.bold, exhibit.title, 14);
+    page.drawText(exhibit.title, {
+      x: (width - titleWidth) / 2,
+      y: height - 100,
       size: 14,
       font: fonts.bold,
       color: rgb(0, 0, 0),
     });
-    headingPage.drawText(exhibit.description, {
-      x: 150,
-      y: 770,
+
+    // Center align exhibit description
+    const descWidth = this.safeTextWidth(fonts.normal, exhibit.description, 12);
+    page.drawText(exhibit.description, {
+      x: (width - descWidth) / 2,
+      y: height - 130,
       size: 12,
       font: fonts.normal,
       color: rgb(0, 0, 0),
@@ -584,8 +698,46 @@ class CourtPdfService {
     }
   }
 
+  async createExhibitPlaceholder(pdfDoc, fonts, exhibit) {
+    const page = pdfDoc.addPage(this.pageSize);
+    const { width, height } = page.getSize();
+
+    // Center align exhibit title
+    const titleWidth = this.safeTextWidth(fonts.bold, exhibit.title, 14);
+    page.drawText(exhibit.title, {
+      x: (width - titleWidth) / 2,
+      y: height - 100,
+      size: 14,
+      font: fonts.bold,
+      color: rgb(0, 0, 0),
+    });
+
+    // Center align exhibit description
+    const descWidth = this.safeTextWidth(fonts.normal, exhibit.description, 12);
+    page.drawText(exhibit.description, {
+      x: (width - descWidth) / 2,
+      y: height - 130,
+      size: 12,
+      font: fonts.normal,
+      color: rgb(0, 0, 0),
+    });
+
+    // Center align placeholder text
+    const placeholder = 'No documents attached for this exhibit.';
+    const placeholderWidth = this.safeTextWidth(fonts.normal, placeholder, 12);
+    page.drawText(placeholder, {
+      x: (width - placeholderWidth) / 2,
+      y: height - 200,
+      size: 12,
+      font: fonts.normal,
+      color: rgb(0, 0, 0),
+    });
+  }
+
   splitTextIntoLines(text, maxLength) {
-    const words = text.split(' ');
+    if (!text) return [];
+    const cleanText = text.replace(/[\n\r]/g, ' ').trim();
+    const words = cleanText.split(' ');
     const lines = [];
     let currentLine = '';
 

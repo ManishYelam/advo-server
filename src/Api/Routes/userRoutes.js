@@ -19,7 +19,8 @@ userRouter
   .put('/:id', userController.updateUser)
   .delete('/:id', authMiddleware, userController.deleteUser)
   .delete('/user_range/:start_id/to/:end_id', authMiddleware, userController.deleteUserRanges)
-  .post('/save-application', uploadPublicMiddleware.uploadApplicationMiddleware, userController.saveApplication);
+  .post('/save-application', uploadPublicMiddleware.uploadApplicationMiddleware, userController.saveApplication)
+  .post('/update-application', uploadPublicMiddleware.uploadApplicationMiddleware, userController.updateApplication);
 
 // Get merged PDF
 // Get merged PDF

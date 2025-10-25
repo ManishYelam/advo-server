@@ -271,6 +271,35 @@ module.exports = {
     }
   },
 
+  updateApplication: async (caseId, user_data, case_data) => {
+    const t = await sequelize.MAIN_DB_NAME.transaction();
+    try {
+      const caseRecord = await Cases.findOne({ where: { id: caseId }, transaction: t });
+      if (!caseRecord) {
+        await t.rollback();
+        return { success: false, error: 'Case not found' };
+      }
+
+      const user = await User.findOne({ where: { id: caseRecord.client_id }, transaction: t });
+      if (!user) {
+        await t.rollback();
+        return { success: false, error: 'User not found' };
+      }
+
+      await Promise.all([
+        user.update({ ...user_data, updated_at: new Date() }, { transaction: t }),
+        caseRecord.update({ ...case_data, updated_at: new Date() }, { transaction: t }),
+      ]);
+
+      await t.commit();
+      return { success: true, user, case: caseRecord };
+    } catch (error) {
+      console.error('Update application error:', error.message);
+      await t.rollback();
+      return { success: false, error: error.message };
+    }
+  },
+
   updateApplicationFilePath: async (userId, filePath, options = {}) => {
     try {
       const {
@@ -284,64 +313,61 @@ module.exports = {
 
       // ✅ Step 1: Find the case
       const whereClause = { client_id: userId };
-      if (applicationId) {
-        whereClause.id = applicationId;
-      }
+      if (applicationId) whereClause.id = applicationId;
 
-      const caseRecord = await Cases.findOne({
-        where: whereClause,
-        order: [['createdAt', 'DESC']],
-      });
+      const caseRecord = await Cases.findOne({ where: whereClause, order: [['createdAt', 'DESC']] });
 
       if (!caseRecord) {
-        return {
-          success: false,
-          error: 'No case found for this user. Please save application first.',
-        };
+        return { success: false, error: 'No case found for this user. Please save application first.' };
       }
 
-      // ✅ Step 2: Extract only file paths from existing documents and add new one
+      // Step 2: Extract existing file paths
       let currentFilePaths = [];
-
       if (caseRecord.documents) {
         if (Array.isArray(caseRecord.documents)) {
-          // If it's already an array, extract file paths from objects or use strings directly
           currentFilePaths = caseRecord.documents
-            .map(doc => {
-              if (typeof doc === 'string') {
-                return doc; // Already a file path string
-              } else if (doc && doc.url) {
-                return doc.url; // Extract url from object
-              } else if (doc && doc.path) {
-                return doc.path; // Extract path from object
-              }
-              return null;
-            })
-            .filter(Boolean); // Remove null values
-        } else if (typeof caseRecord.documents === 'object' && caseRecord.documents.url) {
-          // If it's a single object with url
+            .map(doc => (typeof doc === 'string' ? doc : doc?.url || doc?.path))
+            .filter(Boolean);
+        } else if (caseRecord.documents?.url) {
           currentFilePaths = [caseRecord.documents.url];
         }
       }
 
-      // Add the new file path (convert to relative path if needed)
       const relativeFilePath = filePath ? filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/') : null;
       const updatedFilePaths = filePath ? [...currentFilePaths, relativeFilePath] : currentFilePaths;
 
-      await caseRecord.update({
-        documents: updatedFilePaths,
-        updatedAt: new Date(),
+      await caseRecord.update({ documents: updatedFilePaths, updatedAt: new Date() });
+
+      // Step 3: Check if UserDocument already exists
+      let userDocument = await UserDocument.findOne({
+        where: { user_id: userId, case_id: caseRecord.id, document_type: documentType },
       });
 
-      // ✅ Step 3: Create UserDocument with full details (only if filePath exists)
-      let userDocument = null;
-      if (filePath) {
+      if (userDocument) {
+        // Update existing document
+        await userDocument.update({
+          file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
+          file_path: filePath,
+          file_size: fileSize,
+          description,
+          metadata: {
+            ...userDocument.metadata,
+            originalName: fileName,
+            uploadedAt: new Date().toISOString(),
+            documentVersion: userDocument.metadata?.documentVersion || '1.0',
+            totalPages: options.totalPages || 0,
+            mergedFilesCount: options.mergedFilesCount || 0,
+          },
+          updated_at: new Date(),
+        });
+      } else if (filePath) {
+        // Create new document if it doesn't exist
         userDocument = await UserDocument.create({
           user_id: userId,
           case_id: caseRecord.id,
           document_type: documentType,
           file_name: fileName || `application_${userId}_${Date.now()}.pdf`,
-          file_path: filePath, // Store full path in UserDocument
+          file_path: filePath,
           file_size: fileSize,
           mime_type: 'application/pdf',
           description,
@@ -359,20 +385,8 @@ module.exports = {
 
       // ✅ Step 4: Optionally update User table
       if (updateUserRecord && filePath) {
-        await User.update(
-          {
-            last_application_pdf: relativeFilePath, // Store relative path in User
-            updatedAt: new Date(),
-          },
-          { where: { id: userId } }
-        );
+        await User.update({ last_application_pdf: relativeFilePath, updatedAt: new Date() }, { where: { id: userId } });
       }
-
-      console.log(`✅ Case updated for user ${userId}`);
-      if (userDocument) {
-        console.log(`✅ UserDocument created with ID: ${userDocument.id}`);
-      }
-      console.log(`✅ File paths in case: ${updatedFilePaths.length}`);
 
       return {
         success: true,
