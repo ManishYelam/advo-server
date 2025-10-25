@@ -1,8 +1,8 @@
- // controllers/contactController.js
+// controllers/contactController.js
 const ContactService = require('../Services/ContactService');
 
 const ContactController = {
-   // User: Submit a contact message
+  // User: Submit a contact message
   createContact: async (req, res) => {
     try {
       const contact = await ContactService.createContact(req.body);
@@ -58,7 +58,6 @@ const ContactController = {
       });
     }
   },
-
 
   // 🟢 Update contact details (status, remarks, etc.)
   updateContact: async (req, res) => {

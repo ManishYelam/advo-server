@@ -162,38 +162,17 @@ module.exports = {
         }
       };
 
-      // Clean up previous temporary files for this user
-      const cleanupPreviousTempFiles = userId => {
+      // Clean up previous files for this user
+      const cleanupPreviousFiles = userId => {
         try {
           const userFolder = path.join(UPLOAD_DIR, userId.toString());
           if (fs.existsSync(userFolder)) {
-            // console.log(`🧹 Cleaning up previous temporary files for user ${userId}`);
-
-            // Remove all temp files in user folder
-            const files = fs.readdirSync(userFolder);
-            files.forEach(file => {
-              if (file.startsWith('temp_') && !file.includes('merged_court_document')) {
-                const filePath = path.join(userFolder, file);
-                try {
-                  fs.unlinkSync(filePath);
-                  // console.log(`  ✅ Deleted previous temp file: ${file}`);
-                } catch (error) {
-                  // console.error(`  ❌ Failed to delete ${file}:`, error.message);
-                }
-              }
-            });
-
-            // Clean up temp documents folder
-            const tempDocsFolder = path.join(userFolder, 'temp_documents');
-            if (fs.existsSync(tempDocsFolder)) {
-              // console.log(`  🗑️ Deleting entire temp_documents directory: ${tempDocsFolder}`);
-              fs.rmSync(tempDocsFolder, { recursive: true, force: true });
-              // console.log(`  ✅ Successfully deleted temp_documents directory`);
-            }
+            // console.log(`🧹 Cleaning up previous files for user ${userId}`);
+            fs.rmSync(userFolder, { recursive: true, force: true });
+            // console.log(`✅ Successfully cleaned up user folder`);
           }
         } catch (cleanupError) {
-          // console.error('❌ Error cleaning up previous temp files:', cleanupError);
-          // Don't throw error, continue with new upload
+          // console.error('❌ Error cleaning up previous files:', cleanupError);
         }
       };
 
@@ -272,6 +251,401 @@ module.exports = {
       if (!userId) throw new Error('User ID not found after saving');
 
       // console.log(`✅ Application data saved for user ID: ${userId}`);
+
+      // 6. Clean up previous files
+      cleanupPreviousFiles(userId);
+
+      // 7. Handle file uploads
+      // console.log(`📁 Using UPLOAD_DIR: ${UPLOAD_DIR}`);
+      const userFolder = path.join(UPLOAD_DIR, userId.toString());
+      // console.log(`📂 Creating user folder: ${userFolder}`);
+      ensureDirExists(userFolder);
+
+      const exhibitDocuments = {
+        'Exhibit A': [],
+        'Exhibit B': [],
+        'Exhibit C': [],
+        'Exhibit D': [],
+      };
+
+      // Track processed files to prevent duplicates
+      const processedFileHashes = new Set();
+
+      // Function to create file hash for duplicate detection
+      const createFileHash = (file, exhibit = null) => {
+        const baseHash = `${file.originalname}_${file.size}_${file.mimetype}`;
+        return exhibit ? `${baseHash}_${exhibit}` : baseHash;
+      };
+
+      // 7A. Handle application form PDF with duplicate detection
+      if (req.files && req.files.applicationForm) {
+        const applicationFormFile = req.files.applicationForm[0];
+
+        // Create unique hash for this file to avoid duplicates
+        const fileHash = createFileHash(applicationFormFile, 'application_form');
+
+        if (!processedFileHashes.has(fileHash)) {
+          processedFileHashes.add(fileHash);
+
+          // console.log('📄 Processing application form:', applicationFormFile.originalname);
+
+          applicationPdfBuffer = fs.readFileSync(applicationFormFile.path);
+
+          // Delete the temp file after reading (this is the multer temp file, not user upload)
+          try {
+            if (fs.existsSync(applicationFormFile.path)) {
+              fs.unlinkSync(applicationFormFile.path);
+              // console.log('  🗑️ Deleted multer temp file for application form');
+            }
+          } catch (deleteError) {
+            // console.error('  ❌ Error deleting multer temp file:', deleteError.message);
+          }
+        } else {
+          // console.log('🔄 Skipping duplicate application form file');
+          // Just skip without processing - don't delete user's uploaded file
+        }
+      } else {
+        // console.log('⚠️ No application form file received');
+      }
+
+      // 7B. Handle exhibit documents with comprehensive duplicate detection
+      if (req.files && req.files.documents) {
+        const documentFiles = req.files.documents;
+        // console.log(`📚 Processing ${documentFiles.length} document files`);
+
+        // Parse document metadata
+        const documentMetadata = req.body.documentMetadata
+          ? Array.isArray(req.body.documentMetadata)
+            ? req.body.documentMetadata.map(meta => JSON.parse(meta))
+            : [JSON.parse(req.body.documentMetadata)]
+          : [];
+
+        // console.log(`📋 Found ${documentMetadata.length} metadata entries`);
+
+        const documentsFolder = path.join(userFolder, 'documents');
+        ensureDirExists(documentsFolder);
+
+        let validFileCount = 0;
+        let duplicateCount = 0;
+
+        for (let i = 0; i < documentFiles.length; i++) {
+          const file = documentFiles[i];
+          const meta = documentMetadata[i] || {};
+
+          // Create unique hash for this file to avoid duplicates
+          const fileHash = createFileHash(file, meta.exhibit);
+
+          if (processedFileHashes.has(fileHash)) {
+            // console.log(`  🔄 Skipping duplicate file ${i + 1}: ${file.originalname} for exhibit ${meta.exhibit}`);
+            // Just skip without processing - don't delete user's uploaded file
+
+            // Still need to clean up multer temp file for skipped duplicates
+            try {
+              if (file.path && fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+                // console.log(`  🗑️ Cleaned up multer temp file for duplicate`);
+              }
+            } catch (cleanupError) {
+              // console.error(`  ❌ Error cleaning up multer temp file:`, cleanupError.message);
+            }
+
+            duplicateCount++;
+            continue;
+          }
+          processedFileHashes.add(fileHash);
+
+          // console.log(`  📄 Processing document ${i + 1}: ${file.originalname} for exhibit: ${meta.exhibit}`);
+
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const filename = `doc_${meta.exhibit}_${timestamp}_${safeFileName}`;
+          const filePath = path.join(documentsFolder, filename);
+
+          // Move file from multer temp location to our permanent location
+          fs.renameSync(file.path, filePath);
+          storedFiles.push(filePath);
+          validFileCount++;
+
+          // Organize by exhibit for court document generation
+          if (exhibitDocuments[meta.exhibit]) {
+            exhibitDocuments[meta.exhibit].push({
+              filePath,
+              fileType: file.mimetype,
+              originalName: meta.originalName || file.originalname,
+              exhibit: meta.exhibit,
+            });
+          }
+
+          // console.log(`  ✅ Saved to: ${filename}`);
+        }
+
+        // console.log(`📊 Document processing summary: ${validFileCount} valid files, ${duplicateCount} duplicates skipped`);
+
+        // Clean up empty documents folder if no files were saved
+        if (validFileCount === 0 && fs.existsSync(documentsFolder)) {
+          try {
+            fs.rmdirSync(documentsFolder);
+            // console.log('🧹 Removed empty documents folder');
+          } catch (error) {
+            // Ignore if not empty
+          }
+        }
+      } else {
+        // console.log('⚠️ No document files received');
+      }
+
+      // 8. Generate SINGLE Court Application PDF
+      // console.log('⚖️ Generating court application PDF...');
+      let courtDocumentBuffer;
+      let courtApplicationPath = null;
+      let documentsFolderPath = path.join(userFolder, 'documents');
+
+      // Capture user details for email
+      const userEmail = user_data.email;
+      const userName = user_data.full_name;
+      const isLoginUser = !!req.user_info?.id;
+
+      try {
+        courtDocumentBuffer = await courtPdfService.generateCourtDocument(user_data, case_data, applicationPdfBuffer, exhibitDocuments);
+
+        const courtAppFilename = `court_application_${userId}_${Date.now()}.pdf`;
+        courtApplicationPath = path.join(userFolder, courtAppFilename);
+        fs.writeFileSync(courtApplicationPath, courtDocumentBuffer);
+
+        // console.log('✅ Court application PDF generated and saved');
+
+        // 9. SEND EMAIL IMMEDIATELY AFTER SUCCESSFUL COURT DOCUMENT GENERATION
+        try {
+          // console.log(`📧 Sending email to: ${userEmail}`);
+
+          // Determine registration link based on login status
+          let registrationLink = null;
+          if (!isLoginUser) {
+            registrationLink = `${FRONTEND_URL}/applicant/${userId}`;
+          }
+
+          await sendApplicantRegEmail(userId, userName, userEmail, registrationLink, courtDocumentBuffer);
+          // console.log('✅ Email sent successfully with court application PDF');
+        } catch (emailError) {
+          console.error('❌ Error sending email with court application PDF:', emailError);
+          // Don't throw error, continue with other operations
+        }
+
+        // 10. DELETE DOCUMENTS DIRECTORY AFTER GENERATING COURT DOCUMENT AND SENDING EMAIL
+        if (fs.existsSync(documentsFolderPath)) {
+          try {
+            // console.log(`🧹 Deleting documents directory after court document generation: ${documentsFolderPath}`);
+            fs.rmSync(documentsFolderPath, { recursive: true, force: true });
+            // console.log('✅ Documents directory deleted successfully');
+
+            // Remove documents folder from storedFiles array to prevent cleanup issues
+            storedFiles = storedFiles.filter(file => !file.includes('/documents/'));
+          } catch (deleteError) {
+            console.error('❌ Error deleting documents directory:', deleteError);
+            // Continue even if deletion fails
+          }
+        }
+
+        // 11. Save ONLY the court application PDF path to database
+        const saveResult = await userService.updateApplicationFilePath(userId, courtApplicationPath, {
+          applicationId: saved.case?.id,
+          documentType: 'court_application',
+          fileName: path.basename(courtApplicationPath),
+          fileSize: courtDocumentBuffer.length,
+          description: 'Complete Court Application Document',
+          updateUserRecord: true,
+        });
+
+        if (!saveResult.success) {
+          throw new Error('Failed to save court application path to database');
+        }
+
+        // console.log('💾 Court application PDF path saved to database');
+      } catch (courtDocError) {
+        console.error('❌ Court application PDF generation failed:', courtDocError);
+        throw new Error('Failed to generate court application document');
+      }
+
+      // 12. Return success response
+      const result = {
+        message: '✅ Application saved successfully! Court application PDF generated and email sent.',
+        data: {
+          ...saved,
+          courtApplicationPath: courtApplicationPath,
+          emailSent: true,
+        },
+        userId,
+      };
+
+      // console.log(`🎉 Application process completed for user ${userId}`);
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('❌ Error saving application:', error);
+
+      // Enhanced cleanup that also checks for any orphaned multer files
+      const cleanupAllFiles = () => {
+        // Clean up stored temporary files
+        if (storedFiles.length > 0) {
+          // console.log('🧹 Cleaning up stored files due to error...');
+          storedFiles.forEach(filePath => {
+            try {
+              if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                // console.log(`✅ Deleted stored file: ${filePath}`);
+              }
+            } catch (cleanupError) {
+              // console.error('❌ Error cleaning up stored file:', cleanupError);
+            }
+          });
+        }
+
+        // Clean up any remaining multer files that weren't processed
+        if (req.files) {
+          // console.log('🧹 Cleaning up orphaned multer files due to error...');
+          Object.values(req.files)
+            .flat()
+            .forEach(file => {
+              try {
+                if (file.path && fs.existsSync(file.path)) {
+                  fs.unlinkSync(file.path);
+                  // console.log(`✅ Deleted orphaned multer file: ${file.originalname}`);
+                }
+              } catch (cleanupError) {
+                // console.error('❌ Error cleaning up multer file:', cleanupError);
+              }
+            });
+        }
+      };
+
+      cleanupAllFiles();
+
+      return res.status(500).json({
+        error: 'An error occurred while saving application',
+        details: error.message,
+      });
+    }
+  },
+
+  updateApplication: async (req, res) => {
+    // console.log('🎯 Update application controller called');
+    // console.log('📦 Request body keys:', Object.keys(req.body));
+    // console.log('📁 Request files:', req.files);
+
+    let storedFiles = [];
+    let applicationPdfBuffer = null;
+
+    try {
+      // 1. Parse application data from form data
+      if (!req.body.applicationData) {
+        throw new Error('No applicationData found in request');
+      }
+
+      const applicationData = JSON.parse(req.body.applicationData);
+      // console.log('👤 Update data received for:', applicationData.full_name);
+
+      // Check if we have the required IDs for update
+      if (!applicationData.case_id && !req.params.caseId) {
+        throw new Error('Case ID is required for update');
+      }
+
+      const caseId = applicationData.case_id || req.params.caseId;
+      const userId = applicationData.client_id;
+
+      if (!userId) {
+        throw new Error('User ID (client_id) is required for update');
+      }
+
+      // console.log(`🔄 Updating application - Case ID: ${caseId}, User ID: ${userId}`);
+
+      const ensureDirExists = dirPath => {
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, { recursive: true });
+          // console.log(`📁 Created directory: ${dirPath}`);
+        }
+      };
+
+      // Clean up previous temporary files for this user
+      const cleanupPreviousTempFiles = userId => {
+        try {
+          const userFolder = path.join(UPLOAD_DIR, userId.toString());
+          if (fs.existsSync(userFolder)) {
+            // console.log(`🧹 Cleaning up previous temporary files for user ${userId}`);
+
+            // Remove all temp files in user folder
+            const files = fs.readdirSync(userFolder);
+            files.forEach(file => {
+              if (file.startsWith('temp_') && !file.includes('merged_court_document')) {
+                const filePath = path.join(userFolder, file);
+                try {
+                  fs.unlinkSync(filePath);
+                  // console.log(`  ✅ Deleted previous temp file: ${file}`);
+                } catch (error) {
+                  // console.error(`  ❌ Failed to delete ${file}:`, error.message);
+                }
+              }
+            });
+
+            // Clean up temp documents folder
+            const tempDocsFolder = path.join(userFolder, 'temp_documents');
+            if (fs.existsSync(tempDocsFolder)) {
+              // console.log(`  🗑️ Deleting entire temp_documents directory: ${tempDocsFolder}`);
+              fs.rmSync(tempDocsFolder, { recursive: true, force: true });
+              // console.log(`  ✅ Successfully deleted temp_documents directory`);
+            }
+          }
+        } catch (cleanupError) {
+          // console.error('❌ Error cleaning up previous temp files:', cleanupError);
+          // Don't throw error, continue with new upload
+        }
+      };
+
+      const formatDate = dateValue => {
+        if (!dateValue) return null;
+        const date = new Date(dateValue);
+        return isNaN(date.getTime()) ? null : date.toISOString();
+      };
+
+      const parseNumber = value => (value ? parseFloat(value) : 0);
+
+      // 2. Extract user data for update
+      const user_data = {
+        full_name: applicationData.full_name,
+        dob: formatDate(applicationData.date_of_birth),
+        age: applicationData.age ? parseInt(applicationData.age, 10) : '',
+        phone_number: applicationData.phone_number,
+        email: applicationData.email,
+        gender: applicationData.gender,
+        occupation: applicationData.occupation,
+        adhar_number: applicationData.adhar_number,
+        address: applicationData.address,
+        additional_notes: applicationData.additional_notes,
+        updated_at: new Date().toISOString(),
+      };
+
+      // 3. Extract case data for update
+      const case_data = {
+        saving_account_start_date: formatDate(applicationData.saving_account_start_date),
+        deposit_type: applicationData.deposit_type,
+        deposit_duration_years: parseNumber(applicationData.deposit_duration_years),
+        fixed_deposit_total_amount: parseNumber(applicationData.fixed_deposit_total_amount),
+        interest_rate_fd: parseNumber(applicationData.interest_rate_fd),
+        saving_account_total_amount: parseNumber(applicationData.saving_account_total_amount),
+        interest_rate_saving: parseNumber(applicationData.interest_rate_saving),
+        recurring_deposit_total_amount: parseNumber(applicationData.recurring_deposit_total_amount),
+        interest_rate_recurring: parseNumber(applicationData.interest_rate_recurring),
+        dnyanrudha_investment_total_amount: parseNumber(applicationData.dnyanrudha_investment_total_amount),
+        dynadhara_rate: parseNumber(applicationData.dynadhara_rate),
+        verified: applicationData.verified,
+        status: applicationData.status || 'Updated',
+        updated_at: new Date().toISOString(),
+      };
+
+      // 5. Update application data in database
+      // console.log('💾 Updating application data in database...');
+      const updated = await userService.updateApplication(userId, caseId, user_data, case_data);
+      if (!updated.success) throw new Error('Failed to update application data');
+
+      // console.log(`✅ Application data updated for user ID: ${userId}, case ID: ${caseId}`);
 
       // 6. Clean up previous temporary files BEFORE processing new ones
       cleanupPreviousTempFiles(userId);
