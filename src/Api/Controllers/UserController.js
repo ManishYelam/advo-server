@@ -547,7 +547,7 @@ module.exports = {
       };
 
       // 4️⃣ Update existing application
-      const applicationId = applicationData.case_id;
+      const applicationId = applicationData.id;
       if (!applicationId) throw new Error('Application ID is required for update');
 
       const updated = await userService.updateApplication(applicationId, user_data, case_data);

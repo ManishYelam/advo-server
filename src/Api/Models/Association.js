@@ -10,12 +10,12 @@ const { SupportTicket, TicketMessage, TicketAttachment, FAQ } = require('./Suppo
 const Feedback = require('./Feedback');
 
 // One client can have many cases
-User.hasMany(Cases, { foreignKey: 'clientId', as: 'cases' });
-Cases.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
+User.hasMany(Cases, { foreignKey: 'client_id', as: 'cases' });
+Cases.belongsTo(User, { foreignKey: 'client_id', as: 'client' });
 
 // Optionally, if you want an advocate to be assigned (for multi-advocate scenario)
-User.hasMany(Cases, { foreignKey: 'advocateId', as: 'assignedCases' });
-Cases.belongsTo(User, { foreignKey: 'advocateId', as: 'advocate' });
+User.hasMany(Cases, { foreignKey: 'advocate_id', as: 'assignedCases' });
+Cases.belongsTo(User, { foreignKey: 'advocate_id', as: 'advocate' });
 
 Cases.hasMany(Payment, { foreignKey: 'case_id', as: 'payments' });
 Payment.belongsTo(Cases, { foreignKey: 'client_id', as: 'case' });
