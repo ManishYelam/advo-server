@@ -401,6 +401,32 @@ module.exports = {
     }
   },
 
+  getApplicationCourtPath: async applicationId => {
+    try {
+      if (!applicationId) {
+        throw new Error('Application ID is required to fetch court PDF path');
+      }
+
+      const courtDocument = await UserDocument.findOne({
+        where: { case_id: applicationId, document_type: 'court_application' },
+        order: [['updated_at', 'DESC']], // Get the latest one if multiple exist
+      });
+
+      if (!courtDocument) {
+        return null;
+      }
+
+      const filePath = courtDocument.file_path || null;
+
+      const relativePath = filePath ? filePath.replace(/^.*[\\\/]uploads[\\\/]/, '/uploads/') : null;
+
+      return relativePath || filePath;
+    } catch (error) {
+      console.error('❌ Error fetching court application PDF path:', error);
+      return null;
+    }
+  },
+
   getUserById: async userId => {
     try {
       // Your implementation to get user by ID

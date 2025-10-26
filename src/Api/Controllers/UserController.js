@@ -496,17 +496,16 @@ module.exports = {
     let applicationPdfBuffer = null;
 
     try {
-      // 1. Parse application data
+      // 1️⃣ Parse application data
       if (!req.body.applicationData) {
         throw new Error('No applicationData found in request');
       }
 
       const applicationData = JSON.parse(req.body.applicationData);
 
+      // Helper functions
       const ensureDirExists = dirPath => {
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, { recursive: true });
-        }
+        if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
       };
 
       const formatDate = dateValue => {
@@ -517,7 +516,7 @@ module.exports = {
 
       const parseNumber = value => (value ? parseFloat(value) : 0);
 
-      // 2. Extract user data
+      // 2️⃣ Extract user data
       const user_data = {
         full_name: applicationData.full_name,
         dob: formatDate(applicationData.date_of_birth),
@@ -531,7 +530,7 @@ module.exports = {
         additional_notes: applicationData.additional_notes,
       };
 
-      // 3. Extract case data
+      // 3️⃣ Extract case data
       const case_data = {
         saving_account_start_date: formatDate(applicationData.saving_account_start_date),
         deposit_type: applicationData.deposit_type,
@@ -547,64 +546,54 @@ module.exports = {
         verified: applicationData.verified,
       };
 
-      // 🧹 4. Do NOT extract or update any payment data here
-
-      // 5. Update existing application
+      // 4️⃣ Update existing application
       const applicationId = applicationData.case_id;
       if (!applicationId) throw new Error('Application ID is required for update');
 
-      // Call update method without payment data
       const updated = await userService.updateApplication(applicationId, user_data, case_data);
       if (!updated.success) throw new Error('Failed to update application data');
 
       const userId = updated.user?.id;
       if (!userId) throw new Error('User ID not found after updating');
 
-      // 6. Handle file uploads - use application-specific folder
+      // 5️⃣ Prepare directories
       const userFolder = path.join(UPLOAD_DIR, userId.toString());
       ensureDirExists(userFolder);
 
-      // Use the existing application folder or create one
       const applicationFolder = path.join(userFolder, `application_${applicationId}`);
       ensureDirExists(applicationFolder);
 
-      const exhibitDocuments = {
-        'Exhibit A': [],
-        'Exhibit B': [],
-        'Exhibit C': [],
-        'Exhibit D': [],
-      };
-
+      const exhibitDocuments = { 'Exhibit A': [], 'Exhibit B': [], 'Exhibit C': [], 'Exhibit D': [] };
       const processedFileHashes = new Set();
+
       const createFileHash = (file, exhibit = null) => {
         const baseHash = `${file.originalname}_${file.size}_${file.mimetype}`;
         return exhibit ? `${baseHash}_${exhibit}` : baseHash;
       };
 
-      // 7A. Update application form PDF if new one uploaded
+      let hasNewDocuments = false;
+      let hasNewApplicationForm = false;
+
+      // 6️⃣ Handle new application form PDF
       if (req.files && req.files.applicationForm) {
         const applicationFormFile = req.files.applicationForm[0];
         const fileHash = createFileHash(applicationFormFile, 'application_form');
 
         if (!processedFileHashes.has(fileHash)) {
           processedFileHashes.add(fileHash);
+          hasNewApplicationForm = true;
 
           applicationPdfBuffer = fs.readFileSync(applicationFormFile.path);
 
           try {
-            if (fs.existsSync(applicationFormFile.path)) {
-              fs.unlinkSync(applicationFormFile.path);
-            }
-          } catch {
-            // ignore deletion errors
-          }
+            fs.unlinkSync(applicationFormFile.path);
+          } catch {}
         }
       }
 
-      // 7B. Handle new exhibit documents if uploaded
+      // 7️⃣ Handle new exhibit documents
       if (req.files && req.files.documents) {
         const documentFiles = req.files.documents;
-
         const documentMetadata = req.body.documentMetadata
           ? Array.isArray(req.body.documentMetadata)
             ? req.body.documentMetadata.map(meta => JSON.parse(meta))
@@ -619,17 +608,15 @@ module.exports = {
           const meta = documentMetadata[i] || {};
 
           const fileHash = createFileHash(file, meta.exhibit);
-
           if (processedFileHashes.has(fileHash)) {
             try {
-              if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
-            } catch {
-              // ignore
-            }
+              fs.unlinkSync(file.path);
+            } catch {}
             continue;
           }
 
           processedFileHashes.add(fileHash);
+          hasNewDocuments = true;
 
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -650,24 +637,49 @@ module.exports = {
         }
       }
 
-      // 8. Regenerate updated Court Application PDF
-      let courtDocumentBuffer;
       let courtApplicationPath = null;
 
-      try {
-        courtDocumentBuffer = await courtPdfService.generateCourtDocument(
+      // 8️⃣ Regenerate court PDF if new files uploaded
+      if (hasNewDocuments || hasNewApplicationForm) {
+        console.log(`🔄 Regenerating court PDF due to new uploads for application ${applicationId}`);
+
+        // Fetch and delete existing court PDF
+        const existingCourtPath = await userService.getApplicationCourtPath(applicationId);
+        if (existingCourtPath && fs.existsSync(existingCourtPath)) {
+          try {
+            fs.unlinkSync(existingCourtPath);
+            console.log(`🗑️ Deleted old court PDF: ${existingCourtPath}`);
+          } catch (err) {
+            console.error(`❌ Failed to delete old court PDF: ${existingCourtPath}`, err);
+          }
+        }
+
+        // Delete any old PDFs in folder for cleanup
+        const files = fs.readdirSync(applicationFolder);
+        files.forEach(file => {
+          if (file.startsWith('court_application_') && file.endsWith('.pdf')) {
+            const filePath = path.join(applicationFolder, file);
+            try {
+              fs.unlinkSync(filePath);
+            } catch {}
+          }
+        });
+
+        // Generate new court PDF
+        const courtDocumentBuffer = await courtPdfService.generateCourtDocument(
           user_data,
           case_data,
           applicationPdfBuffer,
           exhibitDocuments
         );
 
-        // Create new court PDF for this update (keep old one for history)
-        const courtAppFilename = `court_application_${applicationId}_updated_${Date.now()}.pdf`;
+        const courtAppFilename = `court_application_${applicationId}_${Date.now()}.pdf`;
         courtApplicationPath = path.join(applicationFolder, courtAppFilename);
         fs.writeFileSync(courtApplicationPath, courtDocumentBuffer);
 
-        // Update DB file path to point to the new court PDF
+        console.log(`✅ Generated new court PDF: ${courtAppFilename}`);
+
+        // Update DB file path
         const saveResult = await userService.updateApplicationFilePath(userId, courtApplicationPath, {
           applicationId,
           documentType: 'court_application',
@@ -677,31 +689,36 @@ module.exports = {
           updateUserRecord: true,
         });
 
-        if (!saveResult.success) {
-          throw new Error('Failed to update court application path in database');
-        }
+        if (!saveResult.success) throw new Error('Failed to update court application path in database');
 
-        // Clean up temporary documents folder after generating court PDF
+        // Clean up temporary documents
         const documentsFolderPath = path.join(applicationFolder, 'documents');
         if (fs.existsSync(documentsFolderPath)) {
           try {
             fs.rmSync(documentsFolderPath, { recursive: true, force: true });
-            storedFiles = storedFiles.filter(file => !file.includes('/documents/'));
+            storedFiles = storedFiles.filter(f => !f.includes('/documents/'));
+            console.log(`🧹 Cleaned up temporary documents folder`);
           } catch (deleteError) {
             console.error('❌ Error deleting documents directory:', deleteError);
           }
         }
-      } catch (pdfError) {
-        console.error('❌ Court application regeneration failed:', pdfError);
-        throw new Error('Failed to regenerate court application document');
+      } else {
+        console.log(`ℹ️ No new uploads for application ${applicationId}, skipping PDF regeneration`);
+        courtApplicationPath = await userService.getApplicationCourtPath(applicationId);
       }
 
-      // 9. Success response
+      // 9️⃣ Success response
+      const responseMessage =
+        hasNewDocuments || hasNewApplicationForm
+          ? '✅ Application updated successfully! New court application PDF generated.'
+          : '✅ Application updated successfully! Court PDF unchanged.';
+
       return res.status(200).json({
-        message: '✅ Application updated successfully (without payment data)! Court application PDF regenerated.',
+        message: responseMessage,
         data: {
           ...updated,
           courtApplicationPath,
+          courtPdfRegenerated: hasNewDocuments || hasNewApplicationForm,
         },
         userId,
         applicationId,
@@ -709,17 +726,13 @@ module.exports = {
     } catch (error) {
       console.error('❌ Error updating application:', error);
 
-      // Cleanup
+      // 🔟 Cleanup
       const cleanupAllFiles = () => {
-        if (storedFiles.length > 0) {
-          storedFiles.forEach(filePath => {
-            try {
-              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-            } catch {
-              // ignore
-            }
-          });
-        }
+        storedFiles.forEach(filePath => {
+          try {
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          } catch {}
+        });
 
         if (req.files) {
           Object.values(req.files)
@@ -727,9 +740,7 @@ module.exports = {
             .forEach(file => {
               try {
                 if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
-              } catch {
-                // ignore
-              }
+              } catch {}
             });
         }
       };
