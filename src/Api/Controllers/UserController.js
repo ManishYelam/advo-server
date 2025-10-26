@@ -156,15 +156,18 @@ module.exports = {
         }
       };
 
-      // Clean up previous files for this user
-      const cleanupPreviousFiles = userId => {
+      // Clean up only temporary document files, keep previous court PDFs
+      const cleanupTemporaryFiles = userId => {
         try {
           const userFolder = path.join(UPLOAD_DIR, userId.toString());
-          if (fs.existsSync(userFolder)) {
-            fs.rmSync(userFolder, { recursive: true, force: true });
+          const documentsFolder = path.join(userFolder, 'documents');
+
+          // Only delete documents folder (temporary files), keep court PDFs
+          if (fs.existsSync(documentsFolder)) {
+            fs.rmSync(documentsFolder, { recursive: true, force: true });
           }
         } catch (cleanupError) {
-          // Silent cleanup error
+          // Silent cleanup error - it's okay if folder doesn't exist
         }
       };
 
@@ -241,12 +244,17 @@ module.exports = {
       const userId = saved.user?.id;
       if (!userId) throw new Error('User ID not found after saving');
 
-      // 6. Clean up previous files
-      cleanupPreviousFiles(userId);
+      // 6. Clean up only temporary files (documents), keep previous court PDFs
+      cleanupTemporaryFiles(userId);
 
       // 7. Handle file uploads
       const userFolder = path.join(UPLOAD_DIR, userId.toString());
       ensureDirExists(userFolder);
+
+      // Create application-specific folder for this new application
+      const applicationId = saved.case?.id;
+      const applicationFolder = path.join(userFolder, `application_${applicationId}`);
+      ensureDirExists(applicationFolder);
 
       const exhibitDocuments = {
         'Exhibit A': [],
@@ -300,7 +308,7 @@ module.exports = {
             : [JSON.parse(req.body.documentMetadata)]
           : [];
 
-        const documentsFolder = path.join(userFolder, 'documents');
+        const documentsFolder = path.join(applicationFolder, 'documents');
         ensureDirExists(documentsFolder);
 
         let validFileCount = 0;
@@ -361,10 +369,10 @@ module.exports = {
         }
       }
 
-      // 8. Generate SINGLE Court Application PDF
+      // 8. Generate SINGLE Court Application PDF for this specific application
       let courtDocumentBuffer;
       let courtApplicationPath = null;
-      let documentsFolderPath = path.join(userFolder, 'documents');
+      const documentsFolderPath = path.join(applicationFolder, 'documents');
 
       // Capture user details for email
       const userEmail = user_data.email;
@@ -379,8 +387,9 @@ module.exports = {
           exhibitDocuments
         );
 
-        const courtAppFilename = `court_application_${userId}_${Date.now()}.pdf`;
-        courtApplicationPath = path.join(userFolder, courtAppFilename);
+        // Create unique filename for this application's court PDF
+        const courtAppFilename = `court_application_${applicationId}_${Date.now()}.pdf`;
+        courtApplicationPath = path.join(applicationFolder, courtAppFilename);
         fs.writeFileSync(courtApplicationPath, courtDocumentBuffer);
 
         // 9. SEND EMAIL IMMEDIATELY AFTER SUCCESSFUL COURT DOCUMENT GENERATION
@@ -396,7 +405,8 @@ module.exports = {
           console.error('❌ Error sending email with court application PDF:', emailError);
         }
 
-        // 10. DELETE DOCUMENTS DIRECTORY AFTER GENERATING COURT DOCUMENT AND SENDING EMAIL
+        // 10. DELETE ONLY THIS APPLICATION'S DOCUMENTS DIRECTORY AFTER GENERATING COURT DOCUMENT
+        // Keep the court PDF but remove temporary document files
         if (fs.existsSync(documentsFolderPath)) {
           try {
             fs.rmSync(documentsFolderPath, { recursive: true, force: true });
@@ -407,7 +417,7 @@ module.exports = {
           }
         }
 
-        // 11. Save ONLY the court application PDF path to database
+        // 11. Save the court application PDF path to database for THIS application
         const saveResult = await userService.updateApplicationFilePath(userId, courtApplicationPath, {
           applicationId: saved.case?.id,
           documentType: 'court_application',
@@ -434,6 +444,7 @@ module.exports = {
           emailSent: true,
         },
         userId,
+        applicationId,
       };
 
       return res.status(200).json(result);
@@ -549,9 +560,13 @@ module.exports = {
       const userId = updated.user?.id;
       if (!userId) throw new Error('User ID not found after updating');
 
-      // 6. Handle file uploads
+      // 6. Handle file uploads - use application-specific folder
       const userFolder = path.join(UPLOAD_DIR, userId.toString());
       ensureDirExists(userFolder);
+
+      // Use the existing application folder or create one
+      const applicationFolder = path.join(userFolder, `application_${applicationId}`);
+      ensureDirExists(applicationFolder);
 
       const exhibitDocuments = {
         'Exhibit A': [],
@@ -596,7 +611,7 @@ module.exports = {
             : [JSON.parse(req.body.documentMetadata)]
           : [];
 
-        const documentsFolder = path.join(userFolder, 'documents');
+        const documentsFolder = path.join(applicationFolder, 'documents');
         ensureDirExists(documentsFolder);
 
         for (let i = 0; i < documentFiles.length; i++) {
@@ -647,11 +662,12 @@ module.exports = {
           exhibitDocuments
         );
 
-        const courtAppFilename = `court_application_updated_${userId}_${Date.now()}.pdf`;
-        courtApplicationPath = path.join(userFolder, courtAppFilename);
+        // Create new court PDF for this update (keep old one for history)
+        const courtAppFilename = `court_application_${applicationId}_updated_${Date.now()}.pdf`;
+        courtApplicationPath = path.join(applicationFolder, courtAppFilename);
         fs.writeFileSync(courtApplicationPath, courtDocumentBuffer);
 
-        // Update DB file path
+        // Update DB file path to point to the new court PDF
         const saveResult = await userService.updateApplicationFilePath(userId, courtApplicationPath, {
           applicationId,
           documentType: 'court_application',
@@ -663,6 +679,17 @@ module.exports = {
 
         if (!saveResult.success) {
           throw new Error('Failed to update court application path in database');
+        }
+
+        // Clean up temporary documents folder after generating court PDF
+        const documentsFolderPath = path.join(applicationFolder, 'documents');
+        if (fs.existsSync(documentsFolderPath)) {
+          try {
+            fs.rmSync(documentsFolderPath, { recursive: true, force: true });
+            storedFiles = storedFiles.filter(file => !file.includes('/documents/'));
+          } catch (deleteError) {
+            console.error('❌ Error deleting documents directory:', deleteError);
+          }
         }
       } catch (pdfError) {
         console.error('❌ Court application regeneration failed:', pdfError);
@@ -677,6 +704,7 @@ module.exports = {
           courtApplicationPath,
         },
         userId,
+        applicationId,
       });
     } catch (error) {
       console.error('❌ Error updating application:', error);
