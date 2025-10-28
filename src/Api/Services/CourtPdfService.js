@@ -362,9 +362,16 @@ class CourtPdfService {
   }
 
   // 🔢 Update Cover Page
+  // 🔢 Update Cover Page
   async updateCoverPage(pdfDoc, pageTracker) {
     const page = pdfDoc.getPages()[0];
     const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+
+    // These must match the table layout exactly
+    const startY = 405; // Adjusted to align with first data row
+    const rowHeight = 20;
+
+    // Map in same order as index rows
     const sections = [
       "application",
       "listOfDocuments",
@@ -376,17 +383,18 @@ class CourtPdfService {
       "affidavit",
       "vakalatnama",
     ];
-    let y = 340;
-    for (let i = 0; i < sections.length; i++) {
-      const sec = sections[i];
+
+    sections.forEach((sec, i) => {
       const num = pageTracker.sections[sec];
       if (num) {
         const txt = num.toString();
         const tw = font.widthOfTextAtSize(txt, 9);
-        page.drawText(txt, { x: 510 - tw / 2, y, size: 9, font });
+        // ✅ Adjust X-position to match "PAGE NO" column
+        const x = 515 - tw / 2;
+        const y = startY - i * rowHeight;
+        page.drawText(txt, { x, y, size: 9, font, color: rgb(0, 0, 0) });
       }
-      y -= 20;
-    }
+    });
   }
 
   // 🧭 Footer Page Numbers
