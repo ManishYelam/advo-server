@@ -1,4 +1,4 @@
-const { PDFDocument, rgb, StandardFonts } = require("pdf-lib");
+const { PDFDocument, rgb, StandardFonts, degrees } = require("pdf-lib");
 const fs = require("fs").promises;
 
 class CourtPdfService {
@@ -58,7 +58,7 @@ class CourtPdfService {
     return await pdfDoc.save();
   }
 
-  // 🎯 Safe text draw (removes \n / \r)
+  // 🎯 Safe text draw
   drawAlignedText(page, text, font, size, y, align = "left", color = rgb(0, 0, 0)) {
     if (!text) return;
     const cleanText = text.replace(/[\n\r]/g, " ").trim();
@@ -71,7 +71,7 @@ class CourtPdfService {
     page.drawText(cleanText, { x, y, size, font, color });
   }
 
-  // ✂️ Safe wrapping
+  // ✂️ Wrap text
   wrapText(text, font, size, maxWidth) {
     if (!text) return [];
     const cleanText = text.replace(/[\n\r]/g, " ").trim();
@@ -154,7 +154,6 @@ class CourtPdfService {
     const totalHeight = rowHeight * (rows.length + 1);
     const tableWidth = table.colWidths.reduce((a, b) => a + b, 0);
 
-    // Outer border
     page.drawRectangle({
       x: table.startX,
       y: yStart - totalHeight,
@@ -164,7 +163,6 @@ class CourtPdfService {
       borderWidth: 1,
     });
 
-    // Header
     let x = table.startX;
     columns.forEach((c) => {
       const textWidth = fonts.bold.widthOfTextAtSize(c.label, 10);
@@ -173,7 +171,6 @@ class CourtPdfService {
       x += c.width;
     });
 
-    // Rows
     let y = yStart - 35;
     rows.forEach((r) => {
       let x = table.startX;
@@ -191,28 +188,43 @@ class CourtPdfService {
 
   // 📜 Application
   async addApplication(pdfDoc, fonts, buffer) {
+    if (buffer) {
+      try {
+        const appPdf = await PDFDocument.load(buffer);
+
+        // ✅ Normalize all pages to portrait
+        appPdf.getPages().forEach((p) => {
+          const rot = p.getRotation().angle;
+          if (rot === 90 || rot === 270) p.setRotation(degrees(0));
+        });
+
+        const pages = await pdfDoc.copyPages(appPdf, appPdf.getPageIndices());
+        if (pages.length > 0) {
+          const firstPage = pages[0];
+          const { height } = firstPage.getSize();
+          this.drawAlignedText(firstPage, "APPLICATION", fonts.bold, 14, height - 60, "center");
+        }
+        pages.forEach((p) => pdfDoc.addPage(p));
+        return;
+      } catch {
+        const page = pdfDoc.addPage(this.pageSize);
+        const { height } = page.getSize();
+        this.drawAlignedText(page, "APPLICATION", fonts.bold, 14, height - 100, "center");
+        this.drawAlignedText(page, "Error loading application PDF.", fonts.normal, 12, height - 160, "center");
+        return;
+      }
+    }
+
     const page = pdfDoc.addPage(this.pageSize);
-    const { width, height } = page.getSize();
+    const { height } = page.getSize();
     this.drawAlignedText(page, "APPLICATION", fonts.bold, 14, height - 100, "center");
-
-    if (!buffer) {
-      this.drawAlignedText(page, "Application document will be attached here.", fonts.normal, 12, height - 160, "center");
-      return;
-    }
-
-    try {
-      const appPdf = await PDFDocument.load(buffer);
-      const pages = await pdfDoc.copyPages(appPdf, appPdf.getPageIndices());
-      pages.forEach((p) => pdfDoc.addPage(p));
-    } catch {
-      this.drawAlignedText(page, "Error loading application PDF.", fonts.normal, 12, height - 160, "center");
-    }
+    this.drawAlignedText(page, "Application document will be attached here.", fonts.normal, 12, height - 160, "center");
   }
 
   // 📄 List of Documents
   async createListOfDocuments(pdfDoc, fonts) {
     const page = pdfDoc.addPage(this.pageSize);
-    const { width, height } = page.getSize();
+    const { height } = page.getSize();
     let y = height - 100;
     this.drawAlignedText(page, "LIST OF DOCUMENTS", fonts.bold, 14, y, "center");
     y -= 50;
@@ -236,32 +248,51 @@ class CourtPdfService {
   // 📎 Exhibits
   async addExhibits(pdfDoc, fonts, exhibitDocs, pageTracker) {
     const exhibits = [
-      { id: "A", title: "EXHIBIT A", desc: "Copy of the slip of Account started on 17.11.2022" },
-      { id: "B", title: "EXHIBIT B", desc: "Copy of the Deposits Amount by Applicant to the 'said bank'" },
-      { id: "C", title: "EXHIBIT C", desc: "Copy of the statement by Applicant to Shrirampur Police Station" },
-      { id: "D", title: "EXHIBIT D", desc: "Additional Supporting Documents" },
+      { id: "A", title: "EXHIBIT A" },
+      { id: "B", title: "EXHIBIT B" },
+      { id: "C", title: "EXHIBIT C" },
+      { id: "D", title: "EXHIBIT D" },
     ];
 
     for (const ex of exhibits) {
       pageTracker.sections[`exhibit${ex.id}`] = pdfDoc.getPageCount() + 1;
-      const page = pdfDoc.addPage(this.pageSize);
-      const { width, height } = page.getSize();
-      this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, "center");
-      this.drawAlignedText(page, ex.desc, fonts.normal, 12, height - 130, "center");
-
       const files = exhibitDocs?.[`Exhibit ${ex.id}`] || [];
-      for (const f of files) {
-        try {
-          const buff = await fs.readFile(f.filePath);
-          const doc = await PDFDocument.load(buff);
-          const pages = await pdfDoc.copyPages(doc, doc.getPageIndices());
-          pages.forEach((p) => pdfDoc.addPage(p));
-        } catch {
-          this.drawAlignedText(page, "Error loading exhibit PDF.", fonts.normal, 11, height - 180, "center");
+
+      if (files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          try {
+            const buff = await fs.readFile(files[i].filePath);
+            const sourceDoc = await PDFDocument.load(buff);
+
+            // ✅ Normalize all pages to portrait
+            sourceDoc.getPages().forEach((p) => {
+              const rot = p.getRotation().angle;
+              if (rot === 90 || rot === 270) p.setRotation(degrees(0));
+            });
+
+            const pages = await pdfDoc.copyPages(sourceDoc, sourceDoc.getPageIndices());
+            if (i === 0 && pages.length > 0) {
+              const firstPage = pages[0];
+              const { height } = firstPage.getSize();
+              this.drawAlignedText(firstPage, ex.title, fonts.bold, 14, height - 60, "center");
+            }
+            pages.forEach((p) => pdfDoc.addPage(p));
+          } catch {
+            const page = pdfDoc.addPage(this.pageSize);
+            const { height } = page.getSize();
+            this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, "center");
+            this.drawAlignedText(page, "Error loading exhibit PDF.", fonts.normal, 11, height - 150, "center");
+          }
         }
+      } else {
+        const page = pdfDoc.addPage(this.pageSize);
+        const { height } = page.getSize();
+        this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, "center");
+        this.drawAlignedText(page, "No document attached.", fonts.normal, 11, height - 150, "center");
       }
     }
   }
+
 
   // 📜 Memorandum
   async createMemorandum(pdfDoc, fonts, userData) {
@@ -330,7 +361,7 @@ class CourtPdfService {
     });
   }
 
-  // 🔢 Update Cover Page with Page Numbers
+  // 🔢 Update Cover Page
   async updateCoverPage(pdfDoc, pageTracker) {
     const page = pdfDoc.getPages()[0];
     const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
