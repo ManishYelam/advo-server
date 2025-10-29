@@ -8,7 +8,8 @@ const {
 } = require('../EmailTemplets/Templates');
 const { User } = require('../Models/Association');
 
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL;  
+const SERVER_URL = process.env.SERVER_URL;  
 
 module.exports = {
   sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link, pdfBuffer) => {
@@ -81,8 +82,8 @@ module.exports = {
       otp,
       resetLink: `${FRONTEND_URL}/forgot-password/api/users/verify?userId=${userId}&otp=${otp}`,
       resetPasswordLink: `${FRONTEND_URL}/forgot-password/verify-reset-password?userId=${userId}&token=${otp}`,
-      // resetLink: `https://localhost:5000/api/users/verify?userId=${userId}&otp=${otp}`,
-      // resetPasswordLink: `http://localhost:5000/verify-reset-password?userId=${userId}&token=${otp}`,
+      // resetLink: `${SERVER_URL}/api/users/verify?userId=${userId}&otp=${otp}`,
+      // resetPasswordLink: `${SERVER_URL}/verify-reset-password?userId=${userId}&token=${otp}`,
     };
     sendMail(user_Email, subject, template_Name, template_Data);
   },
@@ -91,7 +92,7 @@ module.exports = {
     const user = await User.findByPk(userId);
     if (!user) throw new Error('User not found');
     const subject = 'Welcome to [Your App Name] - Verify Your Email';
-    const html = registrationTemplate(user.name, 'http:/localhost:5000/verify?token=abc123');
+    const html = registrationTemplate(user.name, `${SERVER_URL}/verify?token=abc123`);
     sendMail(user.email, subject, html);
   },
 

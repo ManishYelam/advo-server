@@ -5,6 +5,8 @@ const { sendLaunchCodeEmail, sendVerificationEmail } = require('./email.Service'
 const { User, Role, Permission, Cases, Payment, UserDocument } = require('../Models/Association');
 const { sequelize } = require('../../Config/Database/db.config');
 
+const SERVER_URL = process.env.SERVER_URL;  
+
 module.exports = {
   createUser: async data => {
     try {
@@ -15,7 +17,7 @@ module.exports = {
 
       const newUser = await User.create(data);
 
-      const verificationUrl = `https://mbvdvt7z-5000.inc1.devtunnels.ms/api/users/verify?userId=${newUser.id}&otp=${otp}`;
+      const verificationUrl = `${SERVER_URL}/api/users/verify?userId=${newUser.id}&otp=${otp}`;
       const userName = `${newUser.full_name}`;
       await sendLaunchCodeEmail(newUser.id, userName, newUser.email, verificationUrl, otp);
 

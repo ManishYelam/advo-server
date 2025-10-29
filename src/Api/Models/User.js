@@ -72,6 +72,10 @@ const userAttribute = {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  reg_type: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   user_metadata: {
     type: DataTypes.JSON,
     allowNull: true,

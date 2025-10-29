@@ -1,7 +1,9 @@
 const cors = require('cors');
 
+const SERVER_URL = process.env.SERVER_URL;  
+
 const corsOptions = {
-  origin: ['http://localhost:5000', 'https://your-production-url.com'],
+  origin: [`${SERVER_URL}`, 'https://your-production-url.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 };
