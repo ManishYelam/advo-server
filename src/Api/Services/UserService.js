@@ -5,7 +5,7 @@ const { sendLaunchCodeEmail, sendVerificationEmail } = require('./email.Service'
 const { User, Role, Permission, Cases, Payment, UserDocument } = require('../Models/Association');
 const { sequelize } = require('../../Config/Database/db.config');
 
-const SERVER_URL = process.env.SERVER_URL;  
+const SERVER_URL = process.env.SERVER_URL;
 
 module.exports = {
   createUser: async data => {
@@ -228,6 +228,15 @@ module.exports = {
       },
     });
     return deletedCount;
+  },
+
+  UserlinkStatusUpdate: async (user_id, status) => {
+    const allowedStatuses = ['active', 'expired', 'pending'];
+    if (!allowedStatuses.includes(status)) {
+      throw new Error(`Invalid status: ${status}`);
+    }
+    const [updatedCount] = await User.update({ reg_link_status: status }, { where: { id: user_id } });
+    return { success: updatedCount > 0, updatedCount };
   },
 
   saveApplication: async (user_data, case_data, payment_data) => {

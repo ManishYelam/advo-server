@@ -8,8 +8,8 @@ const {
 } = require('../EmailTemplets/Templates');
 const { User } = require('../Models/Association');
 
-const FRONTEND_URL = process.env.FRONTEND_URL;  
-const SERVER_URL = process.env.SERVER_URL;  
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const SERVER_URL = process.env.SERVER_URL;
 
 module.exports = {
   sendApplicantRegEmail: async (userId, fullName, userEmail, reg_link, pdfBuffer) => {

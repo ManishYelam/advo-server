@@ -1,5 +1,5 @@
-const { PDFDocument, rgb, StandardFonts, degrees } = require("pdf-lib");
-const fs = require("fs").promises;
+const { PDFDocument, rgb, StandardFonts, degrees } = require('pdf-lib');
+const fs = require('fs').promises;
 
 class CourtPdfService {
   constructor() {
@@ -11,7 +11,7 @@ class CourtPdfService {
     };
     this.courtDetails = {
       courtName: "IN THE COURT OF HON'BLE SESSION FOR GREATER BOMBAY AT, MUMBAI",
-      specialCourt: "SPECIAL COURT FOR PMLA CASES",
+      specialCourt: 'SPECIAL COURT FOR PMLA CASES',
       year: new Date().getFullYear(),
     };
   }
@@ -41,9 +41,9 @@ class CourtPdfService {
 
     // Remaining sections
     const lastSections = [
-      { name: "memorandum", method: this.createMemorandum },
-      { name: "affidavit", method: this.createAffidavit },
-      { name: "vakalatnama", method: this.createVakalatnama },
+      { name: 'memorandum', method: this.createMemorandum },
+      { name: 'affidavit', method: this.createAffidavit },
+      { name: 'vakalatnama', method: this.createVakalatnama },
     ];
     for (const sec of lastSections) {
       pageTracker.sections[sec.name] = pdfDoc.getPageCount() + 1;
@@ -59,14 +59,14 @@ class CourtPdfService {
   }
 
   // 🎯 Safe text draw
-  drawAlignedText(page, text, font, size, y, align = "left", color = rgb(0, 0, 0)) {
+  drawAlignedText(page, text, font, size, y, align = 'left', color = rgb(0, 0, 0)) {
     if (!text) return;
-    const cleanText = text.replace(/[\n\r]/g, " ").trim();
+    const cleanText = text.replace(/[\n\r]/g, ' ').trim();
     const { width } = page.getSize();
     const textWidth = font.widthOfTextAtSize(cleanText, size);
     let x = this.layout.margins.left;
-    if (align === "center") x = (width - textWidth) / 2;
-    if (align === "right") x = width - this.layout.margins.right - textWidth;
+    if (align === 'center') x = (width - textWidth) / 2;
+    if (align === 'right') x = width - this.layout.margins.right - textWidth;
 
     page.drawText(cleanText, { x, y, size, font, color });
   }
@@ -74,13 +74,13 @@ class CourtPdfService {
   // ✂️ Wrap text
   wrapText(text, font, size, maxWidth) {
     if (!text) return [];
-    const cleanText = text.replace(/[\n\r]/g, " ").trim();
-    const words = cleanText.split(" ");
+    const cleanText = text.replace(/[\n\r]/g, ' ').trim();
+    const words = cleanText.split(' ');
     const lines = [];
-    let line = "";
+    let line = '';
 
     for (const word of words) {
-      const test = line ? line + " " + word : word;
+      const test = line ? line + ' ' + word : word;
       if (font.widthOfTextAtSize(test, size) < maxWidth) {
         line = test;
       } else {
@@ -98,32 +98,28 @@ class CourtPdfService {
     const { width, height } = page.getSize();
     let y = height - this.layout.margins.top;
 
-    this.drawAlignedText(page, this.courtDetails.courtName, fonts.bold, 12, y, "center");
-    this.drawAlignedText(page, this.courtDetails.specialCourt, fonts.bold, 12, y - 25, "center");
+    this.drawAlignedText(page, this.courtDetails.courtName, fonts.bold, 12, y, 'center');
+    this.drawAlignedText(page, this.courtDetails.specialCourt, fonts.bold, 12, y - 25, 'center');
 
     y -= 90;
     const year = this.courtDetails.year;
-    const caseLines = [
-      `CRIMINAL APPLICATION/EXHIBIT NO. OF ${year}`,
-      "IN",
-      `SPECIAL CASE NO. OF ${year}`,
-    ];
-    caseLines.forEach((l, i) => this.drawAlignedText(page, l, fonts.normal, 11, y - i * 20, "center"));
+    const caseLines = [`CRIMINAL APPLICATION/EXHIBIT NO. OF ${year}`, 'IN', `SPECIAL CASE NO. OF ${year}`];
+    caseLines.forEach((l, i) => this.drawAlignedText(page, l, fonts.normal, 11, y - i * 20, 'center'));
 
     y -= 90;
-    const applicant = userData.full_name || "APPLICANT NAME";
+    const applicant = userData.full_name || 'APPLICANT NAME';
     const partyLines = [
       `(${applicant})……APPLICANT`,
-      "VERSUS",
-      "DNYANDHA MULTISTATE CO-OPERATIVE CREDIT SOCIETY) …ACCUSED",
-      "DIRECTORATE OF ENFORCEMENT ) … COMPLAINT",
+      'VERSUS',
+      'DNYANDHA MULTISTATE CO-OPERATIVE CREDIT SOCIETY) …ACCUSED',
+      'DIRECTORATE OF ENFORCEMENT ) … COMPLAINT',
     ];
     partyLines.forEach((l, i) =>
-      this.drawAlignedText(page, l, i === 1 ? fonts.bold : fonts.normal, 11, y - i * 20, i === 1 ? "center" : "left")
+      this.drawAlignedText(page, l, i === 1 ? fonts.bold : fonts.normal, 11, y - i * 20, i === 1 ? 'center' : 'left')
     );
 
     y -= 90;
-    this.drawAlignedText(page, "INDEX", fonts.bold, 14, y, "center");
+    this.drawAlignedText(page, 'INDEX', fonts.bold, 14, y, 'center');
     y -= 40;
 
     this.drawIndexTable(page, fonts, y);
@@ -133,21 +129,21 @@ class CourtPdfService {
   drawIndexTable(page, fonts, yStart) {
     const { table } = this.layout;
     const columns = [
-      { key: "sr", label: "SR NO", width: 40, align: "center" },
-      { key: "particulars", label: "PARTICULARS APPLICATION", width: 270, align: "left" },
-      { key: "exhibit", label: "EXHIBITS NO", width: 120, align: "center" },
-      { key: "page", label: "PAGE NO", width: 60, align: "center" },
+      { key: 'sr', label: 'SR NO', width: 40, align: 'center' },
+      { key: 'particulars', label: 'PARTICULARS APPLICATION', width: 270, align: 'left' },
+      { key: 'exhibit', label: 'EXHIBITS NO', width: 120, align: 'center' },
+      { key: 'page', label: 'PAGE NO', width: 60, align: 'center' },
     ];
     const rows = [
-      { sr: "1", particulars: "APPLICATION" },
-      { sr: "2", particulars: "LIST OF DOCUMENTS" },
-      { sr: "3", particulars: "Copy of the slip of Account started on 17.11.2022", exhibit: '"A"' },
-      { sr: "4", particulars: "Copy of the Deposits Amount by Applicant to the 'said bank'", exhibit: '"B"' },
-      { sr: "5", particulars: "Copy of the statement by Applicant to Shrirampur Police Station", exhibit: '"C"' },
-      { sr: "6", particulars: "Additional Supporting Documents", exhibit: '"D"' },
-      { sr: "7", particulars: "Memorandum of Address" },
-      { sr: "8", particulars: "Affidavit-in-Support of the Application" },
-      { sr: "9", particulars: "Vakalatnama" },
+      { sr: '1', particulars: 'APPLICATION' },
+      { sr: '2', particulars: 'LIST OF DOCUMENTS' },
+      { sr: '3', particulars: 'Copy of the slip of Account started on 17.11.2022', exhibit: '"A"' },
+      { sr: '4', particulars: "Copy of the Deposits Amount by Applicant to the 'said bank'", exhibit: '"B"' },
+      { sr: '5', particulars: 'Copy of the statement by Applicant to Shrirampur Police Station', exhibit: '"C"' },
+      { sr: '6', particulars: 'Additional Supporting Documents', exhibit: '"D"' },
+      { sr: '7', particulars: 'Memorandum of Address' },
+      { sr: '8', particulars: 'Affidavit-in-Support of the Application' },
+      { sr: '9', particulars: 'Vakalatnama' },
     ];
 
     const rowHeight = 20;
@@ -164,21 +160,21 @@ class CourtPdfService {
     });
 
     let x = table.startX;
-    columns.forEach((c) => {
+    columns.forEach(c => {
       const textWidth = fonts.bold.widthOfTextAtSize(c.label, 10);
-      const xText = c.align === "center" ? x + c.width / 2 - textWidth / 2 : x + 5;
+      const xText = c.align === 'center' ? x + c.width / 2 - textWidth / 2 : x + 5;
       page.drawText(c.label, { x: xText, y: yStart - 15, size: 10, font: fonts.bold });
       x += c.width;
     });
 
     let y = yStart - 35;
-    rows.forEach((r) => {
+    rows.forEach(r => {
       let x = table.startX;
-      columns.forEach((c) => {
-        const text = r[c.key] || "";
-        const cleanText = text.replace(/[\n\r]/g, " ");
+      columns.forEach(c => {
+        const text = r[c.key] || '';
+        const cleanText = text.replace(/[\n\r]/g, ' ');
         const tw = fonts.normal.widthOfTextAtSize(cleanText, 9);
-        const xText = c.align === "center" ? x + c.width / 2 - tw / 2 : x + 5;
+        const xText = c.align === 'center' ? x + c.width / 2 - tw / 2 : x + 5;
         page.drawText(cleanText, { x: xText, y, size: 9, font: fonts.normal });
         x += c.width;
       });
@@ -193,7 +189,7 @@ class CourtPdfService {
         const appPdf = await PDFDocument.load(buffer);
 
         // ✅ Normalize all pages to portrait
-        appPdf.getPages().forEach((p) => {
+        appPdf.getPages().forEach(p => {
           const rot = p.getRotation().angle;
           if (rot === 90 || rot === 270) p.setRotation(degrees(0));
         });
@@ -202,23 +198,23 @@ class CourtPdfService {
         if (pages.length > 0) {
           const firstPage = pages[0];
           const { height } = firstPage.getSize();
-          this.drawAlignedText(firstPage, "APPLICATION", fonts.bold, 14, height - 60, "center");
+          this.drawAlignedText(firstPage, 'APPLICATION', fonts.bold, 14, height - 60, 'center');
         }
-        pages.forEach((p) => pdfDoc.addPage(p));
+        pages.forEach(p => pdfDoc.addPage(p));
         return;
       } catch {
         const page = pdfDoc.addPage(this.pageSize);
         const { height } = page.getSize();
-        this.drawAlignedText(page, "APPLICATION", fonts.bold, 14, height - 100, "center");
-        this.drawAlignedText(page, "Error loading application PDF.", fonts.normal, 12, height - 160, "center");
+        this.drawAlignedText(page, 'APPLICATION', fonts.bold, 14, height - 100, 'center');
+        this.drawAlignedText(page, 'Error loading application PDF.', fonts.normal, 12, height - 160, 'center');
         return;
       }
     }
 
     const page = pdfDoc.addPage(this.pageSize);
     const { height } = page.getSize();
-    this.drawAlignedText(page, "APPLICATION", fonts.bold, 14, height - 100, "center");
-    this.drawAlignedText(page, "Application document will be attached here.", fonts.normal, 12, height - 160, "center");
+    this.drawAlignedText(page, 'APPLICATION', fonts.bold, 14, height - 100, 'center');
+    this.drawAlignedText(page, 'Application document will be attached here.', fonts.normal, 12, height - 160, 'center');
   }
 
   // 📄 List of Documents
@@ -226,20 +222,20 @@ class CourtPdfService {
     const page = pdfDoc.addPage(this.pageSize);
     const { height } = page.getSize();
     let y = height - 100;
-    this.drawAlignedText(page, "LIST OF DOCUMENTS", fonts.bold, 14, y, "center");
+    this.drawAlignedText(page, 'LIST OF DOCUMENTS', fonts.bold, 14, y, 'center');
     y -= 50;
     const docs = [
-      "1. Application Form",
-      "2. Identity Proof (Aadhar Card)",
-      "3. Address Proof",
-      "4. Bank Account Details",
-      "5. Deposit Proof Documents",
-      "6. Police Station Statement Copy",
-      "7. Additional Supporting Documents",
-      "8. Affidavit",
-      "9. Vakalatnama",
+      '1. Application Form',
+      '2. Identity Proof (Aadhar Card)',
+      '3. Address Proof',
+      '4. Bank Account Details',
+      '5. Deposit Proof Documents',
+      '6. Police Station Statement Copy',
+      '7. Additional Supporting Documents',
+      '8. Affidavit',
+      '9. Vakalatnama',
     ];
-    docs.forEach((d) => {
+    docs.forEach(d => {
       page.drawText(d, { x: 80, y, size: 11, font: fonts.normal });
       y -= 22;
     });
@@ -248,10 +244,10 @@ class CourtPdfService {
   // 📎 Exhibits
   async addExhibits(pdfDoc, fonts, exhibitDocs, pageTracker) {
     const exhibits = [
-      { id: "A", title: "EXHIBIT A" },
-      { id: "B", title: "EXHIBIT B" },
-      { id: "C", title: "EXHIBIT C" },
-      { id: "D", title: "EXHIBIT D" },
+      { id: 'A', title: 'EXHIBIT A' },
+      { id: 'B', title: 'EXHIBIT B' },
+      { id: 'C', title: 'EXHIBIT C' },
+      { id: 'D', title: 'EXHIBIT D' },
     ];
 
     for (const ex of exhibits) {
@@ -265,7 +261,7 @@ class CourtPdfService {
             const sourceDoc = await PDFDocument.load(buff);
 
             // ✅ Normalize all pages to portrait
-            sourceDoc.getPages().forEach((p) => {
+            sourceDoc.getPages().forEach(p => {
               const rot = p.getRotation().angle;
               if (rot === 90 || rot === 270) p.setRotation(degrees(0));
             });
@@ -274,36 +270,35 @@ class CourtPdfService {
             if (i === 0 && pages.length > 0) {
               const firstPage = pages[0];
               const { height } = firstPage.getSize();
-              this.drawAlignedText(firstPage, ex.title, fonts.bold, 14, height - 60, "center");
+              this.drawAlignedText(firstPage, ex.title, fonts.bold, 14, height - 60, 'center');
             }
-            pages.forEach((p) => pdfDoc.addPage(p));
+            pages.forEach(p => pdfDoc.addPage(p));
           } catch {
             const page = pdfDoc.addPage(this.pageSize);
             const { height } = page.getSize();
-            this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, "center");
-            this.drawAlignedText(page, "Error loading exhibit PDF.", fonts.normal, 11, height - 150, "center");
+            this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, 'center');
+            this.drawAlignedText(page, 'Error loading exhibit PDF.', fonts.normal, 11, height - 150, 'center');
           }
         }
       } else {
         const page = pdfDoc.addPage(this.pageSize);
         const { height } = page.getSize();
-        this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, "center");
-        this.drawAlignedText(page, "No document attached.", fonts.normal, 11, height - 150, "center");
+        this.drawAlignedText(page, ex.title, fonts.bold, 14, height - 100, 'center');
+        this.drawAlignedText(page, 'No document attached.', fonts.normal, 11, height - 150, 'center');
       }
     }
   }
-
 
   // 📜 Memorandum
   async createMemorandum(pdfDoc, fonts, userData) {
     const page = pdfDoc.addPage(this.pageSize);
     const { width, height } = page.getSize();
     let y = height - 100;
-    this.drawAlignedText(page, "MEMORANDUM OF ADDRESS", fonts.bold, 14, y, "center");
+    this.drawAlignedText(page, 'MEMORANDUM OF ADDRESS', fonts.bold, 14, y, 'center');
     y -= 50;
-    const addr = (userData.address || "Address not provided").replace(/[\n\r]/g, " ").trim();
-    this.wrapText(addr, fonts.normal, 12, width - 100).forEach((line) => {
-      this.drawAlignedText(page, line, fonts.normal, 12, y, "center");
+    const addr = (userData.address || 'Address not provided').replace(/[\n\r]/g, ' ').trim();
+    this.wrapText(addr, fonts.normal, 12, width - 100).forEach(line => {
+      this.drawAlignedText(page, line, fonts.normal, 12, y, 'center');
       y -= 22;
     });
   }
@@ -313,21 +308,21 @@ class CourtPdfService {
     const page = pdfDoc.addPage(this.pageSize);
     const { height } = page.getSize();
     let y = height - 100;
-    this.drawAlignedText(page, "AFFIDAVIT-IN-SUPPORT OF THE APPLICATION", fonts.bold, 14, y, "center");
+    this.drawAlignedText(page, 'AFFIDAVIT-IN-SUPPORT OF THE APPLICATION', fonts.bold, 14, y, 'center');
     y -= 50;
     const lines = [
-      `I, ${userData.full_name || "Applicant"}, residing at ${userData.address || "address not provided"},`,
-      "do hereby solemnly affirm and state as under:",
-      "",
-      "1. The contents of this application are true to the best of my knowledge.",
-      "2. I have not concealed any material facts from this Honorable Court.",
-      "3. This application is made in good faith and in the interest of justice.",
-      "4. The attached documents are genuine and authentic.",
-      "",
-      "DEPONENT",
+      `I, ${userData.full_name || 'Applicant'}, residing at ${userData.address || 'address not provided'},`,
+      'do hereby solemnly affirm and state as under:',
+      '',
+      '1. The contents of this application are true to the best of my knowledge.',
+      '2. I have not concealed any material facts from this Honorable Court.',
+      '3. This application is made in good faith and in the interest of justice.',
+      '4. The attached documents are genuine and authentic.',
+      '',
+      'DEPONENT',
     ];
-    lines.forEach((l) => {
-      this.drawAlignedText(page, l, fonts.normal, 11, y, "left");
+    lines.forEach(l => {
+      this.drawAlignedText(page, l, fonts.normal, 11, y, 'left');
       y -= 20;
     });
   }
@@ -337,26 +332,26 @@ class CourtPdfService {
     const page = pdfDoc.addPage(this.pageSize);
     const { height } = page.getSize();
     let y = height - 100;
-    this.drawAlignedText(page, "VAKALATNAMA", fonts.bold, 14, y, "center");
+    this.drawAlignedText(page, 'VAKALATNAMA', fonts.bold, 14, y, 'center');
     y -= 50;
     const lines = [
-      "In the Court of Honourable Sessions for Greater Bombay at Mumbai",
-      "Special Court for PMLA Cases",
-      "",
+      'In the Court of Honourable Sessions for Greater Bombay at Mumbai',
+      'Special Court for PMLA Cases',
+      '',
       `Criminal Application/Exhibit No. of ${this.courtDetails.year}`,
       `Special Case No. of ${this.courtDetails.year}`,
-      "",
-      `I, ${userData.full_name || "Applicant"}, do hereby appoint Adv. _______________________`,
-      "to appear for me in the above mentioned case and to conduct the same.",
-      "",
-      "Date: _____________",
-      "",
-      "CLIENT SIGNATURE",
-      "ACCEPTED",
-      "ADVOCATE SIGNATURE",
+      '',
+      `I, ${userData.full_name || 'Applicant'}, do hereby appoint Adv. _______________________`,
+      'to appear for me in the above mentioned case and to conduct the same.',
+      '',
+      'Date: _____________',
+      '',
+      'CLIENT SIGNATURE',
+      'ACCEPTED',
+      'ADVOCATE SIGNATURE',
     ];
-    lines.forEach((l) => {
-      this.drawAlignedText(page, l, fonts.normal, 11, y, "left");
+    lines.forEach(l => {
+      this.drawAlignedText(page, l, fonts.normal, 11, y, 'left');
       y -= 20;
     });
   }
@@ -373,15 +368,15 @@ class CourtPdfService {
 
     // Map in same order as index rows
     const sections = [
-      "application",
-      "listOfDocuments",
-      "exhibitA",
-      "exhibitB",
-      "exhibitC",
-      "exhibitD",
-      "memorandum",
-      "affidavit",
-      "vakalatnama",
+      'application',
+      'listOfDocuments',
+      'exhibitA',
+      'exhibitB',
+      'exhibitC',
+      'exhibitD',
+      'memorandum',
+      'affidavit',
+      'vakalatnama',
     ];
 
     sections.forEach((sec, i) => {

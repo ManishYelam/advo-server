@@ -66,6 +66,12 @@ const generateUserSchema = async (isUpdate = false) => {
     role: isUpdate
       ? Joi.string().valid('client', 'admin', 'advocate').optional()
       : Joi.string().valid('client', 'admin', 'advocate').required(),
+    reg_link_status: Joi.string()
+      .valid('active', 'expired', 'pending')
+      .optional()
+      .messages({
+        'any.only': 'reg_link_status must be one of active, expired, or pending',
+      }),
     user_metadata: Joi.object().pattern(Joi.string(), Joi.any()).optional(),
   });
 };

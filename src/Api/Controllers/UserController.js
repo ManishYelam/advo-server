@@ -394,15 +394,22 @@ module.exports = {
 
         // 9. SEND EMAIL IMMEDIATELY AFTER SUCCESSFUL COURT DOCUMENT GENERATION
         try {
-          // Determine registration link based on login status
           let registrationLink = null;
           if (!isLoginUser) {
             registrationLink = `${FRONTEND_URL}/applicant/${userId}`;
           }
 
           await sendApplicantRegEmail(userId, userName, userEmail, registrationLink, courtDocumentBuffer);
+
+          if (registrationLink) {
+            const statusResult = await userService.UserlinkStatusUpdate(userId, 'pending');
+            if (!statusResult || !statusResult.success) {
+              throw new Error(`Failed to update reg_link_status for user ${userId}`);
+            }
+          }
         } catch (emailError) {
-          console.error('❌ Error sending email with court application PDF:', emailError);
+          console.error('❌ Error during applicant registration email or status update:', emailError);
+          throw new Error('Failed to send registration email or update link status');
         }
 
         // 10. DELETE ONLY THIS APPLICATION'S DOCUMENTS DIRECTORY AFTER GENERATING COURT DOCUMENT
