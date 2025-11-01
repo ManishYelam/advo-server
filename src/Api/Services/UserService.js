@@ -230,12 +230,16 @@ module.exports = {
     return deletedCount;
   },
 
-  UserlinkStatusUpdate: async (user_id, status) => {
+  UserlinkStatusUpdate: async (user_id, status, reg_type) => {
     const allowedStatuses = ['active', 'expired', 'pending'];
     if (!allowedStatuses.includes(status)) {
       throw new Error(`Invalid status: ${status}`);
     }
-    const [updatedCount] = await User.update({ reg_link_status: status }, { where: { id: user_id } });
+    const updateData = { reg_link_status: status };
+    if (reg_type) {
+      updateData.reg_type = reg_type;
+    }
+    const [updatedCount] = await User.update(updateData, { where: { id: user_id } });
     return { success: updatedCount > 0, updatedCount };
   },
 

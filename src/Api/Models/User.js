@@ -75,10 +75,11 @@ const userAttribute = {
   reg_type: {
     type: DataTypes.STRING,
     allowNull: true,
+    defaultValue: 'manual',
   },
   reg_link_status: {
     type: DataTypes.ENUM('active', 'expired', 'pending'),
-    allowNull: true,
+    allowNull: false,
     defaultValue: 'active',
   },
   user_metadata: {

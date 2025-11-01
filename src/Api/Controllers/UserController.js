@@ -402,7 +402,7 @@ module.exports = {
           await sendApplicantRegEmail(userId, userName, userEmail, registrationLink, courtDocumentBuffer);
 
           if (registrationLink) {
-            const statusResult = await userService.UserlinkStatusUpdate(userId, 'pending');
+            const statusResult = await userService.UserlinkStatusUpdate(userId, 'pending', 'reg_link');
             if (!statusResult || !statusResult.success) {
               throw new Error(`Failed to update reg_link_status for user ${userId}`);
             }
