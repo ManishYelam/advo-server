@@ -5,7 +5,7 @@ module.exports = {
   createCase: async (req, res) => {
     try {
       const caseData = req.body; // Get data from request body
-      console.log(req.user_info.id);
+      // console.log(req.user_info.id);
       const client_id = req.user_info.id;
       const client_name = req.user_info.full_name;
       caseData.client_id = client_id;

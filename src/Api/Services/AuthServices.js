@@ -105,6 +105,8 @@ const AuthService = {
 
   changePassword: async (userId, old_password, new_password) => {
     try {
+      console.log(userId,old_password,new_password);
+      
       const user = await User.findByPk(userId);
       if (!user) {
         throw new Error('User not found');
@@ -125,8 +127,7 @@ const AuthService = {
       // Update the password in a single database query
       await user.update({ password: newHashedPassword });
 
-      const userName = `${user.first_name} ${user.last_name}`;
-      await sendPasswordChangeEmail(userId, user.email, userName);
+      await sendPasswordChangeEmail(userId, user.email, user.full_name);
 
       return { message: 'Your password has been updated successfully! For security, please log in again with your new password.' };
     } catch (error) {

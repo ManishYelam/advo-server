@@ -17,7 +17,7 @@ module.exports = {
         attachments,
       };
 
-      console.log('Controller - Creating ticket with data:', ticketData);
+      // console.log('Controller - Creating ticket with data:', ticketData);
 
       const ticket = await supportService.createTicket(ticketData);
 

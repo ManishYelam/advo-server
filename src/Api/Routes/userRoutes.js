@@ -31,9 +31,9 @@ userRouter.get('/test-env', userController.testEnv);
 
 // Test route for uploads
 userRouter.post('/test-upload', uploadPublicMiddleware.uploadApplicationMiddleware, (req, res) => {
-  console.log('🧪 Test upload received:');
-  console.log('📁 Files:', req.files);
-  console.log('📝 Body keys:', Object.keys(req.body));
+  // console.log('🧪 Test upload received:');
+  // console.log('📁 Files:', req.files);
+  // console.log('📝 Body keys:', Object.keys(req.body));
 
   return res.status(200).json({
     message: 'Upload test successful',

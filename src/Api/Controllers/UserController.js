@@ -648,14 +648,14 @@ module.exports = {
 
       // 8️⃣ Regenerate court PDF if new files uploaded
       if (hasNewDocuments || hasNewApplicationForm) {
-        console.log(`🔄 Regenerating court PDF due to new uploads for application ${applicationId}`);
+        // console.log(`🔄 Regenerating court PDF due to new uploads for application ${applicationId}`);
 
         // Fetch and delete existing court PDF
         const existingCourtPath = await userService.getApplicationCourtPath(applicationId);
         if (existingCourtPath && fs.existsSync(existingCourtPath)) {
           try {
             fs.unlinkSync(existingCourtPath);
-            console.log(`🗑️ Deleted old court PDF: ${existingCourtPath}`);
+            // console.log(`🗑️ Deleted old court PDF: ${existingCourtPath}`);
           } catch (err) {
             console.error(`❌ Failed to delete old court PDF: ${existingCourtPath}`, err);
           }
@@ -684,7 +684,7 @@ module.exports = {
         courtApplicationPath = path.join(applicationFolder, courtAppFilename);
         fs.writeFileSync(courtApplicationPath, courtDocumentBuffer);
 
-        console.log(`✅ Generated new court PDF: ${courtAppFilename}`);
+        // console.log(`✅ Generated new court PDF: ${courtAppFilename}`);
 
         // Update DB file path
         const saveResult = await userService.updateApplicationFilePath(userId, courtApplicationPath, {
@@ -704,13 +704,13 @@ module.exports = {
           try {
             fs.rmSync(documentsFolderPath, { recursive: true, force: true });
             storedFiles = storedFiles.filter(f => !f.includes('/documents/'));
-            console.log(`🧹 Cleaned up temporary documents folder`);
+            // console.log(`🧹 Cleaned up temporary documents folder`);
           } catch (deleteError) {
             console.error('❌ Error deleting documents directory:', deleteError);
           }
         }
       } else {
-        console.log(`ℹ️ No new uploads for application ${applicationId}, skipping PDF regeneration`);
+        // console.log(`ℹ️ No new uploads for application ${applicationId}, skipping PDF regeneration`);
         courtApplicationPath = await userService.getApplicationCourtPath(applicationId);
       }
 
