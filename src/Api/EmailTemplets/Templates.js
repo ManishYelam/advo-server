@@ -486,171 +486,117 @@ module.exports = {
 </html>
 `,
   // ✅
-  sendResetPasswordTemplate: data => `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your Password</title>
-      <style>
-          body {
-              font-family: Arial, sans-serif;
-              background-color: #f4f4f9;
-              margin: 0;
-              padding: 0;
-              color: #333;
-              line-height: 1.6;
-          }
-          .container {
-              max-width: 600px;
-              margin: 40px auto;
-              padding: 20px;
-              background-color: #fff;
-              border-radius: 8px;
-              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-              border: 1px solid #ddd;
-              text-align: center;
-          }
-          .header {
-              background-color: #007bff;
-              color: white;
-              padding: 15px;
-              text-align: center;
-              border-radius: 8px 8px 0 0;
-          }
-          .logo-container {
-              width: 80px;
-              height: 80px;
-              margin: 10px auto;
-              border-radius: 50%;
-              overflow: hidden;
-              border: 2px solid #fff;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              background: #fff;
-          }
-          .logo-container img {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-          }
-          .header h2 {
-              margin: 0;
-              font-size: 24px;
-          }
-          .content {
-              padding: 20px;
-              color: #555;
-              font-size: 16px;
-          }
-          .code-container {
-              background-color: #f9f9f9;
-              padding: 15px;
-              border-radius: 8px;
-              margin: 20px auto;
-              text-align: center;
-              font-size: 18px;
-              font-weight: bold;
-              border: 1px solid #ddd;
-              max-width: 300px;
-              box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-              color: #dc3545;
-          }
-          .btn {
-              background-color: #28a745;
-              color: white;
-              padding: 12px 25px;
-              font-size: 16px;
-              font-weight: bold;
-              border-radius: 6px;
-              text-decoration: none;
-              display: inline-block;
-              margin-top: 15px;
-              box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-              transition: all 0.3s ease;
-          }
-          .btn:hover {
-              background-color: #218838;
-              transform: translateY(-2px);
-          }
-          .btn-secondary {
-              background-color: #007bff;
-              color: white;
-              padding: 12px 25px;
-              font-size: 16px;
-              font-weight: bold;
-              border-radius: 6px;
-              text-decoration: none;
-              display: inline-block;
-              margin-top: 15px;
-              box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-              transition: all 0.3s ease;
-          }
-          .btn-secondary:hover {
-              background-color: #0056b3;
-              transform: translateY(-2px);
-          }
-          .footer {
-              font-size: 12px;
-              color: #888;
-              padding: 20px 0;
-              border-top: 1px solid #eee;
-          }
-          @media (max-width: 600px) {
-              .container {
-                  width: 95%;
-                  margin: 20px auto;
-              }
-              .code-container {
-                  max-width: 100%;
-                  padding: 12px;
-              }
-          }
-      </style>
-  </head>
-  <body>
-      <div class="container">
-          <!-- Header Section -->
-          <div class="header">
-              <div class="logo-container">
-                  <img src="https://res.cloudinary.com/dhbkxhxsy/image/upload/v1735644524/fkw33za6df1tejmc9zxy.jpg" alt="Company Logo">
-              </div>
-              <h2>Password Reset Request</h2>
-          </div>
-  
-          <!-- Main Content -->
-          <div class="content">
-              <h2 style="color: #dc3545;">🔑 Reset Your Password</h2>
-              <p>Hi <strong>${data.userName}</strong>,</p>
-              <p>We received a request to reset your password. Use the code below to verify your request:</p>
-  
-              <!-- OTP Code Box -->
-              <div class="code-container">${data.otp}</div>
-  
-              <p>Click below to verify reset password:</p>
-              <a href="${data.resetLink}" class="btn">Verify Reset Password</a>
-  
-              <p><strong>OR</strong></p>
-  
-              <p>Manually reset your password by clicking below:</p>
-              <a href="${data.resetPasswordLink}" class="btn-secondary">Reset Password Manually</a>
-  
-              <p>If you didn’t request this, please ignore this email or contact our support team.</p>
-          </div>
-  
-          <!-- Footer Section -->
-          <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} ${data.companyName}. All rights reserved.</p>
-              <p>${data.companyName}, 123 Secure Lane, Safety City, SC 45678</p>
-              <p>Support Email: <a href="mailto:${data.supportEmail}" style="color: #007bff;">${data.supportEmail}</a></p>
-              <p>Contact: ${data.contactNumber}</p>
-          </div>
-      </div>
-  </body>
-  </html>
-  `,
+sendResetPasswordTemplate: data => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Your Password</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            margin: 10px auto;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+        }
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .content {
+            padding: 20px;
+            color: #555;
+            font-size: 16px;
+        }
+        .code-container {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            max-width: 300px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            color: #dc3545;
+        }
+        .footer {
+            font-size: 12px;
+            color: #888;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container">
+                <img src="https://res.cloudinary.com/dhbkxhxsy/image/upload/v1735644524/fkw33za6df1tejmc9zxy.jpg" alt="Company Logo">
+            </div>
+            <h2>Password Reset Request</h2>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <h2 style="color: #dc3545;">🔑 Reset Your Password</h2>
+            <p>Hi <strong>${data.userName}</strong>,</p>
+            <p>We received a request to reset your password. Use the OTP below to proceed:</p>
+
+            <!-- OTP -->
+            <div class="code-container">${data.otp}</div>
+
+            <p>Please enter this OTP in the app to reset your password.</p>
+            <p><strong>This OTP will expire soon for security reasons.</strong></p>
+
+            <p>If you didn’t request this, please ignore this email.</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} ${data.companyName}. All rights reserved.</p>
+            <p>Support: <a href="mailto:${data.supportEmail}">${data.supportEmail}</a></p>
+            <p>Contact: ${data.contactNumber}</p>
+        </div>
+    </div>
+</body>
+</html>
+`,
   // ✅ 🚀
   welcomeTemplate: data => `
 <!DOCTYPE html>

@@ -151,8 +151,7 @@ const AuthService = {
       const newHashedPassword = await hashPassword(new_password, 10);
       await user.update({ password: newHashedPassword });
 
-      const userName = `${user.first_name} ${user.last_name}`;
-      await sendPasswordChangeEmail(user.id, user.email, userName);
+      await sendPasswordChangeEmail(user.id, user.email, user.full_name);
 
       return { message: 'Your password has been updated successfully! For security, please log in again with your new password.' };
     } catch (error) {
@@ -167,7 +166,7 @@ const AuthService = {
         throw new Error('User not found');
       }
       // Generate OTP & expiry time
-      const { otp, expiryTime } = generateOTPTimestamped(10, 300000, true);
+      const { otp, expiryTime } = generateOTPTimestamped(6, 300000, true);
       await user.update({ otp, expiryTime });
       // Send OTP email
       const userName = `${user.full_name}`;
