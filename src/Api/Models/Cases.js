@@ -10,6 +10,10 @@ const Cases = sequelize.MAIN_DB_NAME.define(
       autoIncrement: true,
       primaryKey: true,
     },
+    case_scheme_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     saving_account_start_date: {
       type: DataTypes.DATEONLY,
       allowNull: false,

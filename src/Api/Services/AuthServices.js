@@ -39,7 +39,7 @@ const AuthService = {
         user_metadata: user.user_metadata ?? {},
       };
 
-      console.log(user_info);
+      // console.log(user_info);
 
       // Generate JWT token
       const token = generateToken(user_info); // Fixed function call
@@ -105,8 +105,8 @@ const AuthService = {
 
   changePassword: async (userId, old_password, new_password) => {
     try {
-      console.log(userId,old_password,new_password);
-      
+      // console.log(userId, old_password, new_password);
+
       const user = await User.findByPk(userId);
       if (!user) {
         throw new Error('User not found');

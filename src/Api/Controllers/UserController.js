@@ -196,6 +196,7 @@ module.exports = {
       // 3. Extract case data
       const case_data = {
         saving_account_start_date: formatDate(applicationData.saving_account_start_date),
+        case_scheme_name: applicationData.case_scheme_name,
         deposit_type: applicationData.deposit_type,
         deposit_duration_years: parseNumber(applicationData.deposit_duration_years),
         fixed_deposit_total_amount: parseNumber(applicationData.fixed_deposit_total_amount),
@@ -400,9 +401,12 @@ module.exports = {
           }
 
           await sendApplicantRegEmail(userId, userName, userEmail, registrationLink, courtDocumentBuffer);
+          console.log(registrationLink);
 
           if (registrationLink) {
             const statusResult = await userService.UserlinkStatusUpdate(userId, 'pending', 'reg_link');
+            console.log(statusResult);
+
             if (!statusResult || !statusResult.success) {
               throw new Error(`Failed to update reg_link_status for user ${userId}`);
             }
@@ -540,6 +544,7 @@ module.exports = {
       // 3️⃣ Extract case data
       const case_data = {
         saving_account_start_date: formatDate(applicationData.saving_account_start_date),
+        case_scheme_name: applicationData.case_scheme_name,
         deposit_type: applicationData.deposit_type,
         deposit_duration_years: parseNumber(applicationData.deposit_duration_years),
         fixed_deposit_total_amount: parseNumber(applicationData.fixed_deposit_total_amount),
@@ -594,7 +599,7 @@ module.exports = {
 
           try {
             fs.unlinkSync(applicationFormFile.path);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -618,7 +623,7 @@ module.exports = {
           if (processedFileHashes.has(fileHash)) {
             try {
               fs.unlinkSync(file.path);
-            } catch {}
+            } catch { }
             continue;
           }
 
@@ -668,7 +673,7 @@ module.exports = {
             const filePath = path.join(applicationFolder, file);
             try {
               fs.unlinkSync(filePath);
-            } catch {}
+            } catch { }
           }
         });
 
@@ -738,7 +743,7 @@ module.exports = {
         storedFiles.forEach(filePath => {
           try {
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-          } catch {}
+          } catch { }
         });
 
         if (req.files) {
@@ -747,7 +752,7 @@ module.exports = {
             .forEach(file => {
               try {
                 if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
-              } catch {}
+              } catch { }
             });
         }
       };
@@ -816,12 +821,12 @@ module.exports = {
         jobStatus,
         mergedFile: mergedDocument
           ? {
-              fileName: mergedDocument.file_name,
-              fileSize: mergedDocument.file_size,
-              description: mergedDocument.description,
-              createdAt: mergedDocument.createdAt,
-              documentType: mergedDocument.document_type,
-            }
+            fileName: mergedDocument.file_name,
+            fileSize: mergedDocument.file_size,
+            description: mergedDocument.description,
+            createdAt: mergedDocument.createdAt,
+            documentType: mergedDocument.document_type,
+          }
           : null,
         timestamp: new Date().toISOString(),
       });

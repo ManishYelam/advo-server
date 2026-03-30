@@ -185,16 +185,16 @@ module.exports = {
       if (data.edit_flag === 'profile_edit') {
         // Profile edit - keep existing password, don't hash anything
         updatedUserData.password = user.password;
-        console.log('Profile edit - preserving existing password');
+        // console.log('Profile edit - preserving existing password');
       } else if (data.password) {
         // Regular update with password - hash the new password
         const hashedPassword = await hashPassword(data.password);
         updatedUserData.password = hashedPassword;
-        console.log('Password update - hashing new password');
+        // console.log('Password update - hashing new password');
       } else {
         // No password provided and no edit_flag - keep existing password
         updatedUserData.password = user.password;
-        console.log('No password provided - preserving existing password');
+        // console.log('No password provided - preserving existing password');
       }
 
       // Update user record
